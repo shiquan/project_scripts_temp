@@ -118,11 +118,31 @@ int get_dyn_proc_info(pid_t pid, struct run_proc_dyn *rpd)
     page_size = sysconf(_SC_PAGESIZE_);
     sprintf(str, "/proc/%u/stat",pid);
     fp = fopen(str, "r");
-    
-    
+    if (fp == NULL) return ERR_PROC_FINISHED;
+    n_spc = 0;
+    while((c = fgetc(fp)) != EOF) {
+	if (c == ' ') ++n_spc;
+	if (n_spc == 22) break;
+    }
+    fscanf(fp, "%lu%lu", &tmp, &tmp2);
+    fclose(fp);
+    rpd->vsize = tmp/1024;
+    rpd->rss = tmp2 *(page_size/1024);
+    rpd->rss *= 1024;
+    rpd->vsize *= 1024;
+    return 0;
 }
 
-#endif
+#endif  /* __linux */
+
+#ifdef __APPLE__
+
+#include <sys/types.h>
+#include <sys/sysctl.h>
+#include <sys/vmmeter.h>
+#include <sys.>
+
+#endif /* __apple */
 
 int main(int argc, char **argv)
 {
