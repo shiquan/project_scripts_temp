@@ -140,7 +140,32 @@ int get_dyn_proc_info(pid_t pid, struct run_proc_dyn *rpd)
 #include <sys/types.h>
 #include <sys/sysctl.h>
 #include <sys/vmmeter.h>
-#include <sys.>
+#include <mach/mach_init.h>
+#include <mach/mach_host.h>
+#include <mach/mach_port.h>
+#include <mach/mach_traps.h>
+#include <mach/task_info.h>
+#include <mach/thread_info.h>
+#include <mach/thread_act.h>
+#include <mach/vm_region.h>
+#include <mach/vm_map.h>
+#include <mach/task.h>
+#include <mach/shared_memory_server.h>
+
+typedef struct vmtotal vmtotal_t;
+
+int run_get_static_sys_info(struct run_sys_static *rss)
+{
+    int mib[4];
+    size_t len;
+    unsigned value;
+
+    /*physical memory*/
+    mib[0] = CTL_HW;
+    mib[1] = HW_PHYSMEM;
+    
+}
+
 
 #endif /* __apple */
 
