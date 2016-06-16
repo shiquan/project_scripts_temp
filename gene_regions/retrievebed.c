@@ -15,6 +15,8 @@
 #include <htslib/khash.h>
 
 #define DBREF_PATH  "/Users/shiquan/Documents/02.codes/project_scripts_temp/ncbi_anno_rel104.dbref.gz"
+/* "/ifs5/ST_TRANS_CARDIO/PUB/analysis_pipelines/BGICG_Annotation/db/annodb/ncbi_anno_rel104.dbref.gz" */
+
 
 typedef char* string;
 
@@ -25,7 +27,7 @@ typedef kh_list_t listHash_t;
 listHash_t *lh = NULL;
 char **fn_read = NULL;
 int lines = 0;
-char *dbref_fn;
+char *dbref_fn = NULL;
 
 KSTREAM_INIT(gzFile, gzread, 8192)
 
@@ -47,6 +49,10 @@ void init_list(char *fn)
     int ret;
 
     fn_read = hts_readlines((const char *)fn, &lines);
+    if (fn_read == NULL) {
+	fprintf(stderr, "%s : %s\n", fn, strerror(errno));
+	exit(1);
+    }
     if (lines == 0)
 	return;
     lh = kh_init(list);
@@ -112,8 +118,10 @@ int main(int argc, char **argv)
 	list_type = is_trans;
     else if (!strcmp(argv[1], "gene"))
 	list_type = is_genes;
-    else
-	ret = usage();
+    else {
+	destroy_list();
+	return usage();
+    }
     ret = retrieve_from_dbref(list_type);
     //free(dbref_fn);
     destroy_list();    
@@ -133,10 +141,12 @@ int retrieve_from_dbref(enum list_type list_type)
     }
 
     kstream_t *ks;
-    int dret;
+    int dret = 0;
     ks = ks_init(fp);
     kstring_t *str;
     str = (kstring_t*) malloc(sizeof(kstring_t));
+    str->l = str->m = 0;
+    str->s = 0;
     int body_included = 0;
     while (ks_getuntil(ks, 2, str, &dret) >= 0) {
 	enum line_type line_type = check_line_type(str->s);
@@ -179,6 +189,7 @@ int retrieve_from_dbref(enum list_type list_type)
 	
 	str->l = 0;
     }
+    ks_destroy(ks);
     free(str);
     gzclose(fp);
     return 0;
