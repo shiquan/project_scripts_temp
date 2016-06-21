@@ -14,8 +14,12 @@
 #include <htslib/kseq.h>
 #include <htslib/khash.h>
 
-#define DBREF_PATH  "/Users/shiquan/Documents/02.codes/project_scripts_temp/ncbi_anno_rel104.dbref.gz"
-/* "/ifs5/ST_TRANS_CARDIO/PUB/analysis_pipelines/BGICG_Annotation/db/annodb/ncbi_anno_rel104.dbref.gz" */
+#ifdef __linux__
+#define DBREF_PATH "/ifs5/ST_TRANS_CARDIO/PUB/analysis_pipelines/BGICG_Annotation/db/annodb/ncbi_anno_rel104.dbref.gz" 
+#else
+#define DBREF_PATH "/Users/shiquan/Documents/02.codes/project_scripts_temp/ncbi_anno_rel104.dbref.gz"
+#endif
+
 
 
 typedef char* string;
@@ -173,7 +177,7 @@ int retrieve_from_dbref(enum list_type list_type)
 		    if (line_type == is_body) {
 			int *ss = ksplit(str, 0, &nfields);
 			char *func = str->s + ss[0];
-			int32_t start = atoi(str->s + ss[1]);
+			int32_t start = atoi(str->s + ss[1]) -1; // bed format, start 0-based
 			int32_t stop = atoi(str->s+ ss[2]);
 			char *exIn = str->s + ss[4];
 			fprintf(stdout,"%s\t%d\t%d\t%s\t%s\t%s\t%s\n",chrom,start,stop, gene_name, trans_name, func,exIn);
