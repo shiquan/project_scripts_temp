@@ -1,8 +1,7 @@
-/* This program is used to evalue the differnece between the two samples, which merged in 
-   a VCF file.
-   Demo:
-   
- */
+// gcc -I. -lhts -o vcfeva common.c vcfeva.c
+//
+//This program is used to evalue the differnece between the two samples, which merged in a VCF file.
+
 #include "commons.h"
 #include "htslib/vcf.h"
 #include "htslib/bgzf.h"
