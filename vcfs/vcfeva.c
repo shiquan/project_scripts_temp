@@ -1,30 +1,57 @@
-// gcc -I. -lhts -o vcfeva common.c vcfeva.c
+// gcc -I. -lhts -o vcfeva vcfeva.c
 //
 //This program is used to evalue the differnece between the two samples, which merged in a VCF file.
 
-#include "commons.h"
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+#include <assert.h>
+#include <errno.h>
+#include "utils.h"
+#include "htslib/hts.h"
 #include "htslib/vcf.h"
 #include "htslib/bgzf.h"
-#include "htslib/hts.h"
 #include "htslib/kseq.h"
+#include "htslib/kstring.h"
 
-static char * Version = "0.1";
-static char * outfile = NULL;
-static char * report = NULL;
-static bool dotasref = FALSE;
-static bool export_uncover = FALSE;
+static const char *Version = "0.2";
+
+enum bool {
+    _promote_to_int = -1, // according to C07, enum should promote to int
+    true = 0,
+    false,
+};
+
+struct args {
+    const char *input_fname;
+    const char *output_fname;
+    const char *report_fname;
+    enum bool dotasref;
+    enum bool export_uncov;
+    int output_type;
+};
+
+struct args args = {
+    .input_fname = 0,
+    .output_fname = 0,
+    .report_fname = 0,
+    .dotasref = false,
+    .export_uncov = false,
+    .output_type = FT_VCF,
+};
+
 
 static int bias = 0;
 
 int usage()
 {
-    fprintf(stderr, "Usage: mergedvcfevalue [option] in.vcf.gz\n");
-    fprintf(stderr, "                 --out  [FILE]   export the inconsistent positions in this file\n");
-    fprintf(stderr, "                 --dotasref      treat the dot in the vcf file as a ref allele\n");
-    fprintf(stderr, "                 --export_uncov  export the uncover positions in the outfile\n");
-    fprintf(stderr, "                 --report [FILE] export the report to this file instead of stdout\n");
-    fprintf(stderr, "                 --help          see this message\n");
-    fprintf(stderr, "                 --version       show version\n");
+    fprintf(stderr, "Usage: vcfeva [option] in.vcf.gz\n");
+    fprintf(stderr, "      -dotasref      treat the dot in the vcf file as a ref allele\n");
+    fprintf(stderr, "      -export_uncov  export the uncover positions in the outfile\n");
+    fprintf(stderr, "      -report [FILE] export the report to this file instead of stdout\n");
+    fprintf(stderr, "      -h, -help      see help information\n");
+    fprintf(stderr, "      -o  [FILE]     export the inconsistent positions in this file\n");
+    fprintf(stderr, "      -O  <u|v|z|b>  output type. default is u\n");
     return 1;
 }
 
@@ -37,10 +64,36 @@ int show_version()
 htsFile *read_vcf_file(char * fname)
 {
     htsFile *fp = hts_open(fname, "r");
-    if ( !fp ) errabort("Could not read file : %s", fname);
+    if ( !fp )
+	error ("Could not read file %s : %s", fname, strerror(errno));
     return fp;
 }
 
+int parse_args(int argc, char **argv)
+{
+    int i;
+    for (i = 0; i < argc; ) {
+	const char *a = argv[i++];
+	if ( strcmp(a, "-h") == 0 || strcmp(a, "-help") == 0)
+	    return usage();
+	if ( strcmp(a, "-dotasref") == 0 ) {
+	    args.dotasref = true;
+	    continue;
+	}
+	if ( strcmp(a, "-export_uncov") == 0 ) {
+	    args.export_uncov = true;
+	    continue;
+	}
+	const char **arg_var = 0;
+	if ( strcmp(a, "-o") == 0 )
+	    arg_var = &args.output_fname;
+	else if ( strcmp(a, "-report") == 0 )
+	    arg_var = &args.report_fname;
+	else if ( strcmp(a, "-O") == 0 )
+	    
+    }
+    return 0;
+}
 #define ALT_IS_REF 0
 #define ALT_IS_HET 1
 #define ALT_IS_HOM 2
@@ -71,7 +124,7 @@ int check_filename(char *fn)
     return 1;
 }
 
-void write_report(uint32_t *m, bcf_hdr_t *hdr)
+void write_report(uint32_t **m, bcf_hdr_t *hdr)
 {
     int i, j;
     const char *title[] = { "REF", "HET", "HOM", "UNCOVER" };
