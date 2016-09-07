@@ -8,19 +8,19 @@
 #include <errno.h>
 #include "utils.h"
 
-int main(int argc, char **argv)
-{
-    if ( parse_args(argc, argv) == 1)
-	return 1;
+/* int main(int argc, char **argv) */
+/* { */
+/*     if ( parse_args(argc, argv) == 1) */
+/* 	return 1; */
 
     
 
-    int i;
-    Read *read = read_reading( argv[1], TT_ABI);
-    if ( read == NULL )
-	error("Failed to open %s : %s", argv[1], strerror(errno));
+/*     int i; */
+/*     Read *read = read_reading( argv[1], TT_ABI); */
+/*     if ( read == NULL ) */
+/* 	error("Failed to open %s : %s", argv[1], strerror(errno)); */
 
-    char iupac(char A1, char A2)
+char iupac(char A1, char A2)
 {
     char iu = 'N';
     if (A1 == 'A' || A1 == 'a') {
