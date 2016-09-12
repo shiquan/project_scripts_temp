@@ -9,6 +9,7 @@ struct abi_read *abi_read_init()
 void abi_read_destroy(struct abi_read *read)
 {
 }
+
 static int check_magic_key(FILE *fp)
 {
     rewind(fp);
