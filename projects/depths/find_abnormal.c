@@ -2,11 +2,13 @@
 // find_abnormal -target target.bed -mode right|left|both -cutoff [3sigma] depth.txt.gz -o out.txt
 #include <stdio.h>
 #include <stdlib.h>
+#include <htslib/hts.h>
 #include <htslib/tbx.h>
 #include <htslib/kstring.h>
 #include <zlib.h>
 #include "utils.h"
 #include "options.h"
+#include "bed_utils.h"
 
 enum mode {
     both_mode,
@@ -20,6 +22,7 @@ struct args {
     const char *output_fname;
     float cutoff;
     enum mode mode;
+    struct bedaux *target_aux;
 };
 
 struct args args = {
@@ -28,6 +31,7 @@ struct args args = {
     .output_fname = 0,
     .cutoff = 3.0,
     .mode = both,
+    .target_aux = NULL,
 };
 
 const struct option_spec options[] = {
@@ -39,7 +43,9 @@ const struct option_spec options[] = {
     { "-help", argument_bool, argument_optional, NULL},
     { NULL, _unknown, _unknown, NULL},
 };
-    
+
+static int target_is_set = 0;
+
 int parse_args(int argc, char **args)
 {
     if ( init_args(options, argc, args) )
@@ -79,21 +85,43 @@ int parse_args(int argc, char **args)
     if ( argument_exist("-out") ) 
         args.out = get_argument_path("-out");
 
-    if ( argument_exist("-target") )
+    if ( argument_exist("-target") ) {
         args.target = get_argument_path("-target");
-    
+        args.target_aux = bedaux_init();
+        bed_read(args.target_aux, args.target);
+        target_is_set = 1;
+    }
     
     return 0;    
 }
 
 int cutoff_check()
 {
+    if ( target_is_set ) {
+        tbx_t *idx = NULL;
+        idx = tbx_index_load(args.input_fname);
+        if ( idx == NULL )
+            error("Failed to load tabix index of %s.", args.input_fname);
+
+        struct bed_line line = BED_LINE_INIT;
+        
+        return 0;
+    }
+
+    
     return 0;
 }
 
 int export_abnormal()
 {
     return 0;
+}
+
+void memory_release()
+{
+    if ( target_is_set ) 
+        bed_destroy(args.target_aux);
+    
 }
 int main(int argc, char **argv)
 {
