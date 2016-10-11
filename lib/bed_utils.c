@@ -120,7 +120,8 @@ struct bed_chrom *get_chrom(struct bedaux *bed, const char *name)
     khint_t k;
     reghash_type *hash = (reghash_type*)bed->hash;
     k = kh_get(reg, hash, name);
-    if (k == kh_end(hash)) return NULL;
+    if (k == kh_end(hash))
+        return NULL;
     struct bed_chrom *chrom = kh_val(hash, k);
     return chrom;
 }
@@ -217,9 +218,9 @@ static void chrom_sort(struct bed_chrom *chrom)
     ks_introsort(uint64_t, chrom->cached, chrom->a);
 }
 static void chrom_merge(struct bed_chrom *chrom)
-{
-    // assume bed is sorted before merge
-    // chrom_sort(chrom);
+{    
+    chrom_sort(chrom);
+    
     int i;
     uint64_t *b = (uint64_t*)malloc(chrom->cached * sizeof(uint64_t));
     uint32_t start_last = 0;
@@ -396,11 +397,14 @@ struct bedaux *bed_dup(struct bedaux *_bed)
     }
     return bed;
 }
-// 1 for end, 0 for success
+// 1 for end, 0 for success, -1 for no found
 int bed_getline_chrom(struct bed_chrom *chm, struct bed_line *line)
 {
-    if (chm->i >= chm->cached)
+    if ( chm == NULL )
+        return -1;
+    if ( chm->i >= chm->cached )
 	return 1;
+    
     line->chrom_id = chm->id;
     line->start = chm->a[chm->i] >> 32;
     line->end = (uint32_t)chm->a[chm->i];
@@ -414,7 +418,9 @@ int bed_getline(struct bedaux *bed, struct bed_line *line)
 	if ( bed_getline_chrom(chm, line) == 0)
 	  break;
     }
-    if (bed->i == bed->l_names) return 1;
+    if (bed->i == bed->l_names)
+        return 1;
+    
     return 0;    
 }
 int bed_sort(struct bedaux *bed)
@@ -436,7 +442,7 @@ int bed_merge(struct bedaux *bed)
 {
     if ( bed->flag & bed_bit_merged)
 	return 1;
-    bed_sort(bed);
+    // bed_sort(bed);
     int i;
     for (i = 0; i < bed->l_names; ++i) {
 	struct bed_chrom *chm = get_chrom(bed, bed->names[i]);
@@ -444,6 +450,7 @@ int bed_merge(struct bedaux *bed)
 	    continue;
 	chrom_merge(chm);
     }
+    bed->flag |= bed_bit_sorted;
     bed->flag |= bed_bit_merged;
     return 0;
 }

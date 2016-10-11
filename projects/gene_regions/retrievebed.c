@@ -20,8 +20,6 @@
 #define DBREF_PATH "/Users/shiquan/Documents/02.codes/project_scripts_temp/ncbi_anno_rel104.dbref.gz"
 #endif
 
-
-
 typedef char* string;
 
 KHASH_MAP_INIT_STR(list, string)
@@ -115,7 +113,7 @@ int main(int argc, char **argv)
 	return usage();
 
     init_list(argv[2]);    
-    dbref_fn = argc == 3 ? argv[3] : NULL;
+    dbref_fn = argc == 4 ? argv[3] : NULL;
     int ret = 1;
     enum list_type list_type = is_error;
     if (!strcmp(argv[1], "nm"))
