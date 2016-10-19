@@ -74,8 +74,8 @@ int parse_args(int argc, char **argv)
         if ( args.trim_end < 0 )
             error("Bad end value, %d", args.trim_end);
     }
-    if (args.trim_start >= args.trim_end)
-        error("Location start should smaller than end.");              
+    if (args.trim_end && args.trim_start >= args.trim_end)
+        error("Should set location start smaller than end.");              
     return 0;
 }
 int main(int argc, char **argv)
@@ -112,6 +112,7 @@ int main(int argc, char **argv)
             if ( seq->qual.l) {
                 putchar('+'); putchar('\n');
                 fputs(seq->qual.s + args.trim_start -1, stdout);
+                putchar('\n');
             }
         } else {
             fputs(seq->seq.s, stdout);
@@ -119,6 +120,7 @@ int main(int argc, char **argv)
             if ( seq->qual.l) {
                 putchar('+'); putchar('\n');
                 fputs(seq->qual.s, stdout);
+                putchar('\n');
             }            
         }
     }
