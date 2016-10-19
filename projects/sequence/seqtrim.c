@@ -109,7 +109,7 @@ int main(int argc, char **argv)
         if ( args.trim_start) {
             fputs(seq->seq.s + args.trim_start -1, stdout);
             putchar('\n');
-            if ( seq->qual.l) {
+            if ( args.print_title && seq->qual.l) {
                 putchar('+'); putchar('\n');
                 fputs(seq->qual.s + args.trim_start -1, stdout);
                 putchar('\n');
@@ -117,7 +117,7 @@ int main(int argc, char **argv)
         } else {
             fputs(seq->seq.s, stdout);
             putchar('\n');
-            if ( seq->qual.l) {
+            if ( args.print_title && seq->qual.l) {
                 putchar('+'); putchar('\n');
                 fputs(seq->qual.s, stdout);
                 putchar('\n');
