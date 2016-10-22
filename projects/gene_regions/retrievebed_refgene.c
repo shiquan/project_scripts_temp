@@ -31,6 +31,7 @@ struct list {
 };
 
 #define LIST_INIT { 0, 0, 0}
+
 struct args {
     const char *refgene_fname;
     const char *format;
@@ -55,8 +56,7 @@ struct list *init_list(const char *fn)
     khiter_t k;
     int ret;
     struct list *list = (struct list*)malloc(sizeof(struct list));
-    
-    
+        
     list->reads = hts_readlines(fn, &list->lines);
     if ( list->reads == NULL) {
 	fprintf(stderr, "%s : %s\n", fn, strerror(errno));
