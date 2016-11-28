@@ -114,4 +114,4 @@ And let's just pick the first several genotypes and find the mismatches, and we 
 
 
 
-Recently, I tried to genotyping the next generation sequencing data, and I think I could just write a program to convert the vcf file to fasta sequences and apply this pipeline to do typing. I will update this protocol soon, please let me know if you have any comments or questions.
+Recently, I tried to genotype the next generation sequencing data, and I think I could just write a program to convert the vcf file to fasta sequences and apply this pipeline to do it directly. I will update this protocol soon, please let me know if you have any comments or questions.
