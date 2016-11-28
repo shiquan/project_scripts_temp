@@ -24,6 +24,10 @@ Most converter with GUI or batch mode could convert the AB1 file into fasta or f
 
 
 
+![](https://github.com/shiquan/small_projects_collections/blob/master/projects/hla_typing/sanger_ab1_demo.png)
+
+
+
 **align the sequence against database**
 
 Before to align the sequence against the HLA databses, we should download the databases from [ebi](ftp://ftp.ebi.ac.uk/pub/databases/ipd/imgt/hla/). And please notice that ebi database only give you haplotypes of genes in  MHC region. But we all know that human being is diplotype. So we need reconstruct the diplotype database base on the haplotype sequences. Here I worte a program named [database_construct](https://github.com/shiquan/small_projects_collections/blob/master/projects/hla_typing/database_construct.c).
