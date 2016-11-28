@@ -24,7 +24,23 @@ Most converter with GUI or batch mode could convert the AB1 file into fasta or f
 
 
 
+This is the orignial AB1 file.
+
 ![](https://github.com/shiquan/small_projects_collections/blob/master/projects/hla_typing/sanger_ab1_demo.png)
+
+And this is the converted sequence. Remeber to trim the first and last few bases because for sanger sequencing the tails of the sequence usually come along with low quality and bias. And try to google IUPAC for more details if you don't fullly understand what's the difference between [WYKSR] and [ATCG]s.
+
+>\>seq
+>
+>GGGACGAGGAGACASGGAAWGTGAAGGCCCACTCACAGAYTGACCGAGWG
+>RACCTGSGGAYCSTGCKCGGCTACTACAACCAGAGCGAGGCCGGTGAGTG
+>ACCCCRGCCCGGGGCGCAGGTCACGACCTCTCATCCCCCACGGACGGGCC
+>RGGTCRCCCACAGTCTCCGGGTCCGAGATCCACCCCGAAGCCGCGGGACC
+>CCGAGACCCTTGCCCCGGGAGAGGCCCAGGCGCCTTWACCCGGTTTCATT
+>TTCAGTTTAGGCCAAAAATCCCCCCGGGTTGGTCGGGGCCGGACGGGGCT
+>CGGGGGACTGGGCTGACCGYGGGGTCGGGGCCAGGTTCTCACACCMTCCA
+>GATGATGTATGGCTGCGACGTGGGGTCGGACGGGCGCTTCCTCCGCGGGT
+>ACCASCAGKACGCCTACGACGGCAAGGATTACATCG
 
 
 
@@ -46,15 +62,50 @@ Now align the Sanger	sequence against our database. Remember there are IUPAC cod
 
 
 
+***Results***
 
-​				
-​			
-​		
-​	
+The result file show several possible genotypes. Now we just pick the best hits. Because this fragement is short we may not find the exactly genotypes but the result should be improved if we have more fragement and sequences.
 
 
 
+>Reference:  Kent, WJ. (2002) BLAT - The BLAST-like alignment tool
+>
+>...
+>
+>HLA:HLA05799_A*31:46_3075_bp,HLA:HLA08602_A*24:215_3116_bp           1085   0.0
+>HLA:HLA12600_A*31:01:02:02_3000_bp,HLA:HLA06368_A*23:38N_3020_bp     1085   0.0
+>HLA:HLA02651_A*31:14N_3090_bp,HLA:HLA14804_A*24:03:01:02_3072_bp     1085   0.0
+>HLA:HLA12600_A*31:01:02:02_3000_bp,HLA:HLA08602_A*24:215_3116_bp     1085   0.0
+>HLA:HLA12600_A*31:01:02:02_3000_bp,HLA:HLA11397_A*24:280_3072_bp     1085   0.0
+>HLA:HLA12600_A*31:01:02:02_3000_bp,HLA:HLA14804_A*24:03:01:02_3072_bp  1085   0.0
+>HLA:HLA04466_A*31:01:04_2918_bp,HLA:HLA05800_A*24:152_3176_bp        1085   0.0
+>HLA:HLA04466_A*31:01:04_2918_bp,HLA:HLA06368_A*23:38N_3020_bp        1085   0.0
+>HLA:HLA04466_A*31:01:04_2918_bp,HLA:HLA08602_A*24:215_3116_bp        1085   0.0
+>HLA:HLA04466_A*31:01:04_2918_bp,HLA:HLA11397_A*24:280_3072_bp        1085   0.0
+>HLA:HLA04466_A*31:01:04_2918_bp,HLA:HLA14804_A*24:03:01:02_3072_bp   1085   0.0
+>HLA:HLA02651_A*31:14N_3090_bp,HLA:HLA11397_A*24:280_3072_bp          1085   0.0
+>HLA:HLA02651_A*31:14N_3090_bp,HLA:HLA08602_A*24:215_3116_bp          1085   0.0
+>HLA:HLA12433_A*31:01:24_2918_bp,HLA:HLA14804_A*24:03:01:02_3072_bp   1085   0.0
+>HLA:HLA02651_A*31:14N_3090_bp,HLA:HLA06368_A*23:38N_3020_bp          1085   0.0
+>HLA:HLA12433_A*31:01:24_2918_bp,HLA:HLA11397_A*24:280_3072_bp        1085   0.0
+>HLA:HLA12433_A*31:01:24_2918_bp,HLA:HLA08602_A*24:215_3116_bp        1085   0.0
+>HLA:HLA12433_A*31:01:24_2918_bp,HLA:HLA06368_A*23:38N_3020_bp        1085   0.0
+>HLA:HLA05799_A*31:46_3075_bp,HLA:HLA03183_A*23:19N_3105_bp           1085   0.0
+>HLA:HLA05799_A*31:46_3075_bp,HLA:HLA05800_A*24:152_3176_bp           1085   0.0
+>HLA:HLA05799_A*31:46_3075_bp,HLA:HLA06112_A*24:02:01:03_3075_bp      1085   0.0
+>HLA:HLA12433_A*31:01:24_2918_bp,HLA:HLA05800_A*24:152_3176_bp        1085   0.0
+>HLA:HLA12600_A*31:01:02:02_3000_bp,HLA:HLA05800_A*24:152_3176_bp     1085   0.0
+>HLA:HLA05799_A*31:46_3075_bp,HLA:HLA14895_A*23:01:19_2943_bp         1085   0.0
+>HLA:HLA02651_A*31:14N_3090_bp,HLA:HLA05800_A*24:152_3176_bp          1085   0.0
+>HLA:HLA05799_A*31:46_3075_bp,HLA:HLA14804_A*24:03:01:02_3072_bp      1085   0.0
+>HLA:HLA05799_A*31:46_3075_bp,HLA:HLA14803_A*24:02:01:08_2902_bp      1085   0.0
+>HLA:HLA05799_A*31:46_3075_bp,HLA:HLA14802_A*24:02:01:07_2902_bp      1085   0.0
+>HLA:HLA05799_A*31:46_3075_bp,HLA:HLA14800_A*24:02:01:06_2902_bp      1085   0.0
+>HLA:HLA05799_A*31:46_3075_bp,HLA:HLA13786_A*24:02:01:05_2979_bp      1085   0.0
+>HLA:HLA05799_A*31:46_3075_bp,HLA:HLA12634_A*24:293_2902_bp           1085   0.0
+>HLA:HLA05799_A*31:46_3075_bp,HLA:HLA06368_A*23:38N_3020_bp           1085   0.0
+>HLA:HLA05799_A*31:46_3075_bp,HLA:HLA11397_A*24:280_3072_bp           1085   0.0
 
 
 
-
+And let's just pick the first several genotypes and find the mismatches, and we could see this mismatches come from the bias of ABI_convertor,
