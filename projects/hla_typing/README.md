@@ -108,4 +108,10 @@ The result file show several possible genotypes. Now we just pick the best hits.
 
 
 
-And let's just pick the first several genotypes and find the mismatches, and we could see this mismatches come from the bias of ABI_convertor,
+And let's just pick the first several genotypes and find the mismatches, and we could see this mismatches come from the bias of ABI_convertor, but I think use imporved algorithm and more sequences will fix this problem.
+
+![](https://github.com/shiquan/small_projects_collections/blob/master/projects/hla_typing/sanger_align_demo.png)
+
+
+
+Recently, I tried to genotyping the next generation sequencing data, and I think I could just write a program to convert the vcf file to fasta sequences and apply this pipeline to do typing. I will update this protocol soon, please let me know if you have any comments or questions.
