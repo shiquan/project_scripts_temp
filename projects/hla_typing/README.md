@@ -49,7 +49,7 @@ And this is the converted sequence. Remeber to trim the first and last few bases
 
 Before to align the sequence against the HLA databses, we should download the databases from [ebi](ftp://ftp.ebi.ac.uk/pub/databases/ipd/imgt/hla/). And please notice that ebi database only give you haplotypes of genes in  MHC region. But we all know that human being is diplotype. So we need reconstruct the diplotype database base on the haplotype sequences. Here I worte a program named [database_construct](https://github.com/shiquan/small_projects_collections/blob/master/projects/hla_typing/database_construct.c).
 
-Download the hapotype databases, here we only download HLA-A gene, for other genes try to change the utl.
+Download the hapotype databases, here we only download HLA-A gene; For other genes please try to change the download address.
 
 > wget −c ftp://ftp.ebi.ac.uk/pub/databases/ipd/imgt/hla/alignments/A_gen.txt	
 
@@ -57,7 +57,7 @@ Before to reconstruct the databases, try to use mafft to realign all the subtype
 
 > mafft A_gen.fasta | database_construct > database.fa		
 
-Now align the Sanger	sequence against our database. Remember there are IUPAC code in the sequence, so we might not use the current stat NGS aligner like bwa and bowtie2 etc. Here we use blat in protein alignment mode in conversion, but in long term or big projects we should consider to develop a program to support IUPAC. Here is the command.
+Now align the Sanger sequence against our database. Remember there are IUPAC code in the sequence, so we might not use the current stat NGS aligner like bwa and bowtie2 etc. Here we use a simple way, use blat in protein alignment mode to do alignment. (But in long term or big projects we should consider to develop a program to support IUPAC.) Here is the command.
 
 > blat −out=blast −t=prot −q=prot −stepSize=5 −repMatch=2253 −minMatch=11 −minScore=90 −minIdentity=0.99 database.fa seq.txt /dev/stdout > result.txt	
 
@@ -109,7 +109,7 @@ The result file show several possible genotypes. Now we just pick the best hits.
 
 
 
-And let's just pick the first several genotypes and find the mismatches, and we could see this mismatches come from the bias of ABI_convertor, but I think use imporved algorithm and more sequences will fix this problem.
+And let's just pick the first several genotypes and find the mismatches, and we could see this mismatches come from the bias of ABI_convertor, but I think use imporved algorithm and longer sequence will fix this problem.
 
 ![](https://github.com/shiquan/small_projects_collections/blob/master/projects/hla_typing/sanger_align_demo.png)
 
