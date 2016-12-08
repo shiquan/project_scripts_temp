@@ -10,8 +10,9 @@ Recently I got an AB1 file which is the Sanger sequence result of the HLA-A gene
 
 **Design**
 
-First of all, we should convert the Sanger sequence signals in ab1 file into a plain sequence, because it is much easier to analysis a sequence than using an ab1 file.
 The difference among MHC haplotypes is used to do typing and consist of wide ranges of genetic variantions. My protocol is to find these variantions and compare these differences with the HLA-A gene databases, to find the best hit(s).
+First of all, we should convert the Sanger sequence signals in ab1 file into a plain sequence, because it is much easier to analysis a sequence than using an ab1 file.
+
 
 
 **Convert AB1 to Fasta**
