@@ -4,14 +4,14 @@ HLA typing from Sanger sequencing ABI file
 
 
 
-Recently I got a AB1 file which is the sequence result of partly HLA gene. And tried to use this file to genotype this sample, but I didn't find any open sources or free software to help me to do that. So I decide to do this from scratch. And of course you could copy and modify these steps freely for any purpose.
+Recently I got an AB1 file which is the Sanger sequence result of the HLA-A gene (partly). I tried to use this file to find out the exactly HLA-A haplotypes, but I didn't find any open sources or free software to help me to do typing. So I decided to do everything from scratch. Here is the full practice. And of course you could copy and modify these steps freely for any purpose.
 
 
 
 **Design**
 
-First of all we should convert the sequence signals in ab1 file into a sequence file, so we could use current-stat-of-art programs to align and call variants and genotype. And second, because there are  a lot of variants usually saps in this region, so we much keep this information and so we could use it for typing.  Last we need comparing out sequence with HLA database, to find the best hit(s). Here are the details.
-
+First of all, we should convert the Sanger sequence signals in ab1 file into a plain sequence, because it is much easier to analysis a sequence than using an ab1 file.
+The difference among MHC haplotypes is used to do typing and consist of wide ranges of genetic variantions. My protocol is to find these variantions and compare these differences with the HLA-A gene databases, to find the best hit(s).
 
 
 **Convert AB1 to Fasta**
