@@ -316,6 +316,8 @@ int push_node(kstring_t *string)
 int usage(char *name)
 {
     fprintf(stderr,
+            "* Format CNV outputs by split all overlap and overhang regions.\n"
+            "Usage:"
             "%s [options] input_cnv.bed\n"
             "-o <file>         output.bed\n"
             "-report           with report.\n"
