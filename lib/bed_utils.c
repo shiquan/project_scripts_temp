@@ -2,6 +2,7 @@
 #include <errno.h>
 #include <stdlib.h>
 #include "utils.h"
+#include "number.h"
 #include "bed_utils.h"
 #include "htslib/hts.h"
 #include "htslib/khash.h"
@@ -125,11 +126,12 @@ struct bed_chrom *get_chrom(struct bedaux *bed, const char *name)
     struct bed_chrom *chrom = kh_val(hash, k);
     return chrom;
 }
+
 // return
 // 0 for normal
 // 1 for empty
 // 2 for malformed line
-static int prase_string(struct bedaux *bed, kstring_t *string, struct bed_line *line)
+static int parse_string(struct bedaux *bed, kstring_t *string, struct bed_line *line)
 {
     int nfields = 0;
     int *splits = ksplit(string, 0, &nfields);
@@ -141,17 +143,17 @@ static int prase_string(struct bedaux *bed, kstring_t *string, struct bed_line *
     k = kh_get(reg, hash, string->s);
     char *name = string->s + splits[0];
     char *temp = string->s + splits[1];
-    if ( isdigit(temp[0]) )
-	line->start = atoi(temp);
-    if (line->start == -1)
-	return 2;
-    if ( nfields > 2 ) {
-	line->end = atoi(string->s + splits[2]);
-    }
-    if ( line->end == -1 ) {
+    if ( check_num_likely(temp) )
+	line->start = str2int(temp);
+    else
+        goto malformed_line;
+
+    if ( nfields > 2 && check_num_likely(string->s + splits[2])) {
+	line->end = str2int(string->s + splits[2]);
+    } else {
 	line->end = line->start;
 	line->start = line->start < 1 ? 0 : line->start -1;
-    }	    
+    }
     k = kh_get(reg, hash, name);
     int id = get_name_id(bed, name);
     if ( k == kh_end(hash) ) {
@@ -196,7 +198,7 @@ static int bed_fill(struct bedaux *bed)
 	    continue;
 	}
 	if ( string.s[0] == '#' ) continue;
-	if ( prase_string(bed, &string, &line) )
+	if ( parse_string(bed, &string, &line) )
 	    goto clean_string;
 
 	if ( line.start == line.end && is_base_0 ) {
@@ -290,7 +292,7 @@ int bed_fill_bigdata(struct bedaux *bed)
 	}
 	if ( string.s[0] == '#' ) continue;
 
-	if ( prase_string(bed, &string, &line) )
+	if ( parse_string(bed, &string, &line) )
 	    goto clean_string;
 	
 	if ( line.start == line.end && is_base_0 ) {
@@ -548,7 +550,7 @@ struct bedaux *bed_find_rough_bigfile(struct bedaux *target, htsFile *fp, tbx_t 
 	int right = 0;
 	struct bed_line dl = BED_LINE_INIT;
 	while ( tbx_itr_next(fp, data, itr, &string) >= 0) {	    
-	    prase_string(design, &string, &dl);
+	    parse_string(design, &string, &dl);
 	    if ( dl.start < line.start ) dl.start = line.start;
 	    if ( dl.end > line.end ) dl.end = line.end;
 	    if ( left == 0)
@@ -569,7 +571,7 @@ struct bedaux *bed_find_rough_bigfile(struct bedaux *target, htsFile *fp, tbx_t 
 	    uint32_t end = line.start;
 	    itr = tbx_itr_queryi(data, tid, start, end);
 	    while ( tbx_itr_next(fp, data, itr, &string) >= 0) {
-		prase_string(design, &string, &dl);
+		parse_string(design, &string, &dl);
 		if (dl.start < start) dl.start = start;
 		push_newline1(design, &dl);
 	    }
@@ -581,7 +583,7 @@ struct bedaux *bed_find_rough_bigfile(struct bedaux *target, htsFile *fp, tbx_t 
 	    uint32_t end = line.end + gap_size;
 	    itr = tbx_itr_queryi(data, tid, start, end);
 	    while ( tbx_itr_next(fp, data, itr, &string) >= 0) {
-		prase_string(design, &string, &dl);
+		parse_string(design, &string, &dl);
 		if (dl.end > end) dl.end = end;
 		push_newline1(design, &dl);
 	    }
