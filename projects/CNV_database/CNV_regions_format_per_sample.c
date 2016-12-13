@@ -321,6 +321,8 @@ int usage(char *name)
             "-report           with report.\n"
             "-min <length>     minimal length to skip.\n"
             "-max <length>     maximal length capped to.\n"
+            "\nHomepage:\n"
+            "https://github.com/shiquan/small_projects_collections/tree/master/projects/CNV_database"
             , name); 
     return 1;
 }
