@@ -214,7 +214,10 @@ int print_node(struct bed_cnv *node)
 {
     if (node == NULL)
         return 1;
-    fprintf(args.fp_out,"%s\t%d\t%d\t%s\n", args.names[node->id], node->start, node->end, explain_type(node->flag));
+    fprintf(args.fp_out,"%s\t%d\t%d\t%s", args.names[node->id], node->start, node->end, explain_type(node->flag));
+    if ( args.sample_name )
+        fprintf(args.fp_out, "\t%s", args.sample_name);
+    fputc('\n', args.fp_out);
     return 0;
 }
 int push_node(kstring_t *string)
@@ -324,7 +327,7 @@ int usage(char *name)
             "-min <length>     minimal length to skip.\n"
             "-max <length>     maximal length capped to.\n"
             "\nHomepage:\n"
-            "https://github.com/shiquan/small_projects_collections/tree/master/projects/CNV_database"
+            "https://github.com/shiquan/small_projects_collections/tree/master/projects/CNV_database\n"
             , name); 
     return 1;
 }
