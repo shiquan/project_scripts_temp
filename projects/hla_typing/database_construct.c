@@ -194,8 +194,8 @@ int export_database()
 int parse_args(int argc, char **argv)
 {
     const char *input_fname = 0;
-    int i;
-    for (i = 0; i < argc;) {
+    int i;    
+    for (i = 1; i < argc;) {
 	const char *a = argv[i++];
 	if ( strcmp(a, "-h") == 0 )
 	    error("database_construct -o out.fa in.fa");
