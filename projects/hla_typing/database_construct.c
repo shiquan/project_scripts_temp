@@ -3,6 +3,7 @@
 #include <htslib/kstring.h>
 #include <htslib/kseq.h>
 #include <zlib.h>
+#include <unistd.h>
 #include "utils.h"
 KSEQ_INIT(gzFile, gzread)
 
