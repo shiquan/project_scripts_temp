@@ -214,7 +214,16 @@ int parse_args(int argc, char **argv)
 	}
 	error("Unknow argument : %s.", a);
     }
-    args.fp = input_fname == 0 && !isatty(stdin) ? gzdopen(fileno(stdin), "r") : gzopen(input_fname, "r");
+    if ( input_fname == 0) {
+        if ( !isatty(stdin) ) {
+            args.fp = gzdopen(fileno(stdin), "r");
+        } else {
+            error("database_construct -o out.fa in.fa");
+        }
+    } else {
+        args.fp = gzopen(input_fname, "r");
+    }
+
     if (args.fp == NULL)
         error("Failed to open %s : %s.", input_fname == 0 ? "-" : input_fname, strerror(errno));
     args.seq = kseq_init(args.fp);
