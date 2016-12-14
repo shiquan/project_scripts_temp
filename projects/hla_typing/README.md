@@ -51,7 +51,7 @@ Before to align the sequence against the HLA databses, we should download the da
 
 Download the hapotype databases, here we only download HLA-A gene; For other genes please try to change the download address.
 
-> wget −c ftp://ftp.ebi.ac.uk/pub/databases/ipd/imgt/hla/alignments/A_gen.txt	
+> wget −c ftp://ftp.ebi.ac.uk/pub/databases/ipd/imgt/hla/fasta/A_gen.fasta
 
 Before to reconstruct the databases, try to use mafft to realign all the subtypes with each other, to find the most common regions.
 
