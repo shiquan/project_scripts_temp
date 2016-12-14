@@ -216,7 +216,7 @@ int parse_args(int argc, char **argv)
 	error("Unknow argument : %s.", a);
     }
     if ( input_fname == 0) {
-        if ( !isatty(stdin) ) {
+        if ( !isatty(fileno(stdin)) ) {
             args.fp = gzdopen(fileno(stdin), "r");
         } else {
             error("database_construct -o out.fa in.fa");
