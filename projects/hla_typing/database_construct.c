@@ -214,15 +214,15 @@ int parse_args(int argc, char **argv)
 	}
 	error("Unknow argument : %s.", a);
     }
-   args.fp = input_fname == 0 ? gzopen(input_fname, "r") : gzdopen(fileno(stdin), "r");
-   if (args.fp == NULL)
-       error("Failed to open %s : %s.", input_fname == 0 ? "-" : input_fname, strerror(errno));
-   args.seq = kseq_init(args.fp);
-   if (args.output_fname == 0)
-       args.out = stdout;
-   else
-       args.out = fopen(args.output_fname, "w");
-   return 0;
+    args.fp = input_fname == 0 && !isatty(stdin) ? gzdopen(fileno(stdin), "r") : gzopen(input_fname, "r");
+    if (args.fp == NULL)
+        error("Failed to open %s : %s.", input_fname == 0 ? "-" : input_fname, strerror(errno));
+    args.seq = kseq_init(args.fp);
+    if (args.output_fname == 0)
+        args.out = stdout;
+    else
+        args.out = fopen(args.output_fname, "w");
+    return 0;
 }
 int main (int argc, char **argv)
 {
