@@ -49,7 +49,7 @@ int push_node(struct cnv_bed *node)
     }
     
     if (node->start < temp->start){                
-        fprintf(stderr, "Regions are not properly sorted. %s : %d %d; %d %d\n", args.names[node->id], node->start+1, node->end, temp->start, temp->end);
+        fprintf(stderr, "Regions are not properly sorted. %s : %d %d; %d %d\n", args.spec->chrom[node->id], node->start+1, node->end, temp->start, temp->end);
         // int end = node->end;
         // node->end = temp->start;
         // node->flag = 0xf;
@@ -77,7 +77,7 @@ int push_node(struct cnv_bed *node)
         // return 0;
     } else if ( node->start == temp->start) {            
         if ( node->end < temp->end ) {
-            fprintf(stderr, "Regions are not properly sorted. %s : %d %d; %d %d\n", args.names[node->id], node->start+1, node->end, temp->start, temp->end);
+            fprintf(stderr, "Regions are not properly sorted. %s : %d %d; %d %d\n", args.spec->chrom[node->id], node->start+1, node->end, temp->start, temp->end);
             node->flag = combine_flag(node->flag, temp->flag);
             print_node(node);
             temp->start = node->end;
@@ -203,6 +203,8 @@ int rebuild_regions()
         struct cnv_bed *node = (struct cnv_bed*)malloc(sizeof(struct cnv_bed));
         if ( cnv_read(args.spec, node) == -1 )
             break;
+        // convert 1 based position to 0 based start
+        node->start--; 
         push_node(node);
     }
     if ( args.node )
