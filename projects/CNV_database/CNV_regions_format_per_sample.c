@@ -38,10 +38,14 @@ int print_node(struct cnv_bed *node)
 }
 int push_node(struct cnv_bed *node)
 {
-    struct cnv_bed *temp = args.node;        
+    struct cnv_bed *temp = args.node;
+    struct cnv_bed **pp = &args.node;
     if (args.node == NULL) {
         goto update_line;
-    }    
+    }   
+    LOG_print("temp: %s\t%d\t%d",args.spec->chrom[temp->id], temp->start+1, temp->end);
+    LOG_print("node: %s\t%d\t%d",args.spec->chrom[node->id], node->start+1, node->end);
+
     if ( node->id != temp->id || temp->end <= node->start) {
         print_node(temp);
         free(temp);
@@ -50,79 +54,44 @@ int push_node(struct cnv_bed *node)
     
     if ( node->start < temp->start ){                
         fprintf(stderr, "Regions are not properly sorted. %s : %d %d; %d %d\n", args.spec->chrom[node->id], node->start+1, node->end, temp->start, temp->end);
-        // int end = node->end;
-        // node->end = temp->start;
-        // node->flag = 0xf;
-        // print_node(node);
         node->start = temp->start;
-        // node->end = end;
-        if ( node->end < temp->end) {
-            node->flag = combine_flag(node->flag, temp->flag);
-            print_node(node);
-            temp->start = node->end;
-            free(node);
-            node = temp;
-        } else if ( node->end == temp->end) {
-            node->flag = combine_flag(node->flag, temp->flag);
-            print_node(node);
-            free(node);
-            free(temp);
-            node = NULL;
-        } else {
-            temp->flag = combine_flag(node->flag, temp->flag);
-            print_node(temp);
-            node->start = temp->end;
-            free(temp);
-        }
-        // return 0;
+        goto check_end;
     } else if ( node->start == temp->start) {            
-        if ( node->end < temp->end ) {
-            fprintf(stderr, "Regions are not properly sorted. %s : %d %d; %d %d\n", args.spec->chrom[node->id], node->start+1, node->end, temp->start, temp->end);
-            node->flag = combine_flag(node->flag, temp->flag);
-            print_node(node);
-            temp->start = node->end;
-            free(node);
-            node = temp;
-            // return 1;
-        } else if ( node->end == temp->end )  {                
-            temp->flag = combine_flag(temp->flag, node->flag);
-            print_node(temp);
-            free(temp);
-            free(node);
-            node = NULL;
-        } else {
-            temp->flag = combine_flag(temp->flag, node->flag);
-            print_node(temp);
-            node->start = temp->end;
-            free(temp);
-        }
+        //if ( node->end < temp->end ) {
+        //    fprintf(stderr, "Regions are not properly sorted. %s : %d %d; %d %d\n", args.spec->chrom[node->id], node->start+1, node->end, temp->start, temp->end);
+        //}
+        goto check_end;
     } else {
         int end = temp->end;
         temp->end = node->start;
         print_node(temp);
         temp->end = end;
         temp->start = node->start;
-        if ( temp->end > node->end) {
-            node->flag = combine_flag(temp->flag, node->flag);
-            print_node(node);
-            temp->start = node->end;            
-            free(node);
-            node = temp;
-        } else if ( temp->end == node->end) {
-            node->flag = combine_flag(temp->flag, node->flag);
-            print_node(node);
-            free(temp);
-            free(node);
-            node = NULL;
-        } else {
-            temp->flag = combine_flag(temp->flag, node->flag);
-            print_node(temp);
-            node->start = temp->end;
-            free(temp);                    
-        }
+        goto check_end;
     }
+    
+  check_end:
+    if ( node->end < temp->end) {
+        node->flag = combine_flag(node->flag, temp->flag);
+        print_node(node);
+        temp->start = node->end;
+        free(node);
+        node = temp;
+    } else if ( node->end == temp->end) {
+        node->flag = combine_flag(node->flag, temp->flag);
+        print_node(node);
+        free(node);
+        free(temp);
+        node = NULL;
+    } else {
+        temp->flag = combine_flag(node->flag, temp->flag);
+        print_node(temp);
+        node->start = temp->end;
+        free(temp);
+    }
+
   update_line:
-    args.node = node;
+    *pp = node;
     return 0;
 }
 int usage(char *name)
