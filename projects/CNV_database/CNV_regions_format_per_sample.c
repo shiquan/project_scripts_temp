@@ -143,7 +143,7 @@ int usage(char *name)
 
 int parse_args(int ac, char **av)
 {
-    if ( ac == 0 )
+    if ( ac == 1 )
         return usage(av[0]);
     
     int i;
