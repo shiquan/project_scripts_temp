@@ -41,9 +41,9 @@ int parse_args(int ac, char **av)
         const char **var = 0;
         if ( strcmp(a, "-o") == 0 && args.output_fname == 0)
             var = &args.output_fname;
-        else if ( strcmp(minimal, "-min") == 0 && minimal == 0 )
+        else if ( strcmp(a, "-min") == 0 && minimal == 0 )
             var = &minimal;
-        else if ( strcmp(maximal, "-max") == 0 && maximal == 0 )
+        else if ( strcmp(a, "-max") == 0 && maximal == 0 )
             var = &maximal;
         
         if ( var != 0 ) {
