@@ -30,8 +30,9 @@ int sort_list(void *plist, comp_func *func)
     qsort(array, l, sizeof(array[0]), func);
 
     *pp = array[0];
-    for ( i =0; i < l-1; ++i )
-        array[i] = array[i+1];
-    
+    for ( i =0; i < l-1; ++i ) {
+        array[i]->next = array[i+1];
+        array[i+1]->next = NULL;
+    }
     return 0;      
 }

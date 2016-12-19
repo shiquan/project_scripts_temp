@@ -16,12 +16,14 @@ struct args {
     FILE *fp_out;    
     struct cnv_bed *node;
     struct cnv_spec *spec;
+    int end;
 } args = {
     .input_fname = NULL,
     .output_fname = NULL,
     .sample_list = NULL,
     .fp_out = NULL,
     .node = NULL,
+    .end = 0,
 };
 
 int usage(const char *name)
@@ -99,7 +101,7 @@ static void print_node(struct cnv_bed *node, struct cnv_bed *end)
             last_id = node->id;
             last_start = node->start;
             last_end = node->end;           
-        } else if ( last_id != node->id || last_start != node->start || last_end == node->end) {
+        } else if ( last_id != node->id || last_start != node->start || last_end != node->end) {
             fprintf(args.fp_out, "%s\t%d\t%d\t<DUP>,<DEL>\t%d,%d\n",
                     args.spec->chrom[last_id], last_start, last_end, dup_count, del_count);
             last_id = node->id;
@@ -172,71 +174,94 @@ void set_cutoff_splitor(int pos)
 }
 int bed_comp(const void *a, const void *b)
 {
-    struct cnv_bed *bed1 = (struct cnv_bed *)a;
-    struct cnv_bed *bed2 = (struct cnv_bed *)b;
-    if ( bed1->start == bed2->start )
-        return bed2->end - bed1->end;
-    return bed2->start - bed1->start;
+    struct cnv_bed **bed1 = (struct cnv_bed **)a;
+    struct cnv_bed **bed2 = (struct cnv_bed **)b;
+    // if ( bed1->start == bed2->start )
+    // return bed2->end - bed1->end;
+    return (*bed1)->start - (*bed2)->start;
 }
-struct cnv_bed *split_and_count_allele(int pos)
+struct cnv_bed *split_blocks(struct cnv_bed *node)
+{
+    if ( splitors.n == 0 )
+        return node->next;
+    int i;
+    for (i = 0; i < splitors.n; i++) {
+        int splitor = splitors.splitors[i];
+
+        if ( splitor >= node->end)
+            break;
+
+        if ( splitor <= node->start)
+            continue;
+
+        struct cnv_bed *temp = malloc(sizeof(struct cnv_bed));
+        temp->id = node->id;
+        temp->flag = node->flag;
+        temp->start = splitor;
+        temp->end = node->end;
+        temp->next = node->next;
+        node->end = splitor;
+        node->next = temp;
+        node = temp;
+    }
+    return node->next;
+}
+void split_and_count_allele()
 {
     struct cnv_bed * temp = args.node;
     struct cnv_bed **pp = &args.node;
     if ( temp == NULL)
-        return NULL;
+        return;
     // clean splitors buffer
     splitors.n = 0;
     // generate the splitors    
     while ( temp )  {
-        if ( temp->start == pos )
-            break;
-        if ( pos > 0 && temp->start > pos )
-            error("The cached list is not properly sorted. %s %d, %d.",  args.spec->chrom[temp->id], temp->start, pos);
+        // if ( temp->start == pos )
+        // break;
+        // if ( pos > 0 && temp->start > pos )
+        //    error("The cached list is not properly sorted. %s %d, %d.",  args.spec->chrom[temp->id], temp->start, pos);
         push_splitor(temp->start);
         push_splitor(temp->end);
         temp = temp->next;
     }
-    if ( pos > 0)
-        set_cutoff_splitor(pos);
-
-    // generate blocks
+    //if ( pos > 0)
+    //   set_cutoff_splitor(pos);
     int i;
+    
+    // generate blocks
     // int last_pos;
-    for ( temp = *pp; temp && temp->start < pos; ) {
+    temp = *pp;
+    for ( ;; ) {
         // last_pos = -1;
-        for (i = 0; i < splitors.n; ++i ) {
-            if ( splitors.splitors[i] > temp->start && splitors.splitors[i] < temp->end) {
-                struct cnv_bed * node = malloc(sizeof(struct cnv_bed));
-                node->id = temp->id;
-                node->start = splitors.splitors[i];
-                node->end = temp->start;
-                node->next = temp->next;
-                temp->next = node;
-                temp->end = node->start;
-                temp = node;
-            } else if ( splitors.splitors[i] == temp->start || splitors.splitors[i] == temp->end) {
-                continue;
-            } else {
-                break;
-            }
-        }
-        temp = temp->next;
+        temp = split_blocks(temp);
+        if ( temp == NULL)
+            break;
     }    
-    splitors.n = 0;
+    // splitors.n = 0;
+
+
     sort_list(pp, bed_comp);
-    for ( temp = *pp; temp && temp->start < pos; temp = temp->next);
-    print_node(*pp, temp);
-    for ( ; *pp && *pp != temp; ) {
+    print_node(*pp, NULL);
+
+    for ( ; *pp; ) {
         struct cnv_bed *node = *pp;
         *pp = (*pp)->next;
         free(node);
     }
-    return *pp;
+    args.end = 0;
+    // return *pp;
 }
 int finish_node()
 {
-    split_and_count_allele(0);
+    split_and_count_allele();
     return 0;
+}
+void make_header(struct cnv_bed *node)
+{
+    if (args.node != NULL)
+        error("Try to realloc a new header for a nonfree header point.");
+    args.node = node;
+    args.end = node->end;
 }
 static int push_node(struct cnv_bed *node)
 {
@@ -246,7 +271,7 @@ static int push_node(struct cnv_bed *node)
 
     if ( temp== NULL || node->id != temp->id ) {
         finish_node();
-        *pp = node;
+        make_header(node);
         return 0;
     }
     for ( ;; ) {       
@@ -255,21 +280,29 @@ static int push_node(struct cnv_bed *node)
             error("Position not properly sorted. %s: %d vs %d.", args.spec->chrom[node->id], node->start, temp->start);
         
         // the new node will be added at the tail of the list.
-        if ( temp->next == NULL) {
-            temp->next = node;
+        if ( temp->next == NULL) {            
+
+            if ( args.end && args.end <= node->start) {
+                split_and_count_allele();
+                make_header(node);                
+            } else {
+                temp->next = node;
+                if ( args.end < node->end)
+                    args.end = node->end;
+            }
             break;
         }
         temp = temp->next;
     }
-    for ( temp = *pp; temp && temp != node; temp = temp->next ) {
+    // for ( temp = *pp; temp && temp != node; temp = temp->next ) {
         // Assume the cached regions are sorted, if some regions are located in the upstream of this node, which means the end positions
         // of these are smaller than node->start, all the regions should be printed out. And the next region closed with the printed regions
         // will be updated to the header of the list.
-        if ( temp->end <= node->start) {
-            *pp = split_and_count_allele(node->start);
-            break;
-        }
-    }
+    // if ( temp->start >= node->start) {
+    // *pp = split_and_count_allele(node->start);
+            // break;
+// }
+//    }
     
     return 0;
 }
