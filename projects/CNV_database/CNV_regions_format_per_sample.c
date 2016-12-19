@@ -43,8 +43,8 @@ int push_node(struct cnv_bed *node)
     if (args.node == NULL) {
         goto update_line;
     }   
-    LOG_print("temp: %s\t%d\t%d",args.spec->chrom[temp->id], temp->start+1, temp->end);
-    LOG_print("node: %s\t%d\t%d",args.spec->chrom[node->id], node->start+1, node->end);
+    // LOG_print("temp: %s\t%d\t%d",args.spec->chrom[temp->id], temp->start+1, temp->end);
+    // LOG_print("node: %s\t%d\t%d",args.spec->chrom[node->id], node->start+1, node->end);
 
     if ( node->id != temp->id || temp->end <= node->start) {
         print_node(temp);
