@@ -48,7 +48,7 @@ int push_node(struct cnv_bed *node)
         goto update_line;
     }
     
-    if (node->start < temp->start){                
+    if ( node->start < temp->start ){                
         fprintf(stderr, "Regions are not properly sorted. %s : %d %d; %d %d\n", args.spec->chrom[node->id], node->start+1, node->end, temp->start, temp->end);
         // int end = node->end;
         // node->end = temp->start;
@@ -143,9 +143,6 @@ int usage(char *name)
 
 int parse_args(int ac, char **av)
 {
-    if ( ac == 1 )
-        return usage(av[0]);
-    
     int i;
     const char *minimal = NULL;
     const char *maximal = NULL;
@@ -160,6 +157,9 @@ int parse_args(int ac, char **av)
             var = &minimal;
         else if ( strcmp(a, "-max") == 0 && maximal == 0 )
             var = &maximal;
+        else if ( strcmp(a, "-h") == 0 )
+            return usage(av[0]);    
+
         if ( var != 0 ) {
             if ( i == ac ) 
                 error("Missing an argument after %s.",a);

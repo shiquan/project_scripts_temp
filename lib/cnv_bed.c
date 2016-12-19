@@ -23,9 +23,9 @@ int flag_inconsis(int flag)
 int combine_flag(int flag1, int flag2)
 {
     if ( (flag1 & 0x3) && (flag2 & 0x3) )
-        return 0x3;
+        return CNV_DEL_HOM;
     if ( (flag1 & 0x4) && (flag2 & 0x4) )
-        return 0xc;
+        return CNV_DUP_HOM;
     return flag1 | flag2;            
 }
 
@@ -100,16 +100,15 @@ const char *explain_type(int flag)
     flag &= CNV_MASK;
     if ( !flag )
         return cnv_types[0];
-    if ( flag & CNV_DEL_HET ) 
+    if ( flag == CNV_DEL_HET ) 
         return cnv_types[1];
-    if ( flag & CNV_DEL_HOM )
+    if ( flag == CNV_DEL_HOM )
         return cnv_types[2];                
-    if ( flag & CNV_DEL_DUP )
+    if ( flag == CNV_DEL_DUP )
         return cnv_types[5];
-
-    if ( flag & CNV_DUP_HET)
+    if ( flag == CNV_DUP_HET)
         return cnv_types[3];
-    if (flag & CNV_DUP_HOM)
+    if (flag == CNV_DUP_HOM)
         return cnv_types[4];
 
     return cnv_types[6];
