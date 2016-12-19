@@ -30,6 +30,9 @@ int print_node(struct cnv_bed *node)
 {
     if (node == NULL)
         return 1;
+    if ( node->end <= node->start) 
+        error("Inconsistant region, start %d, end %d", node->start, node->end);
+    
     fprintf(args.fp_out,"%s\t%d\t%d\t%s", args.spec->chrom[node->id], node->start, node->end, explain_type(node->flag));
     if ( args.spec->n_samples == 1 )
         fprintf(args.fp_out, "\t%s", args.spec->samples[0]);
@@ -52,8 +55,12 @@ int push_node(struct cnv_bed *node)
         goto update_line;
     }
     
-    if ( node->start < temp->start ){                
+    if ( node->start < temp->start ){
         fprintf(stderr, "Regions are not properly sorted. %s : %d %d; %d %d\n", args.spec->chrom[node->id], node->start+1, node->end, temp->start, temp->end);
+        if ( temp->start >= node->end ) {
+            free(node);
+            return 0;
+        }
         node->start = temp->start;
         goto check_end;
     } else if ( node->start == temp->start) {            
