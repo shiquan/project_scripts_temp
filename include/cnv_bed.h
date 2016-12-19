@@ -53,10 +53,10 @@ struct cnv_spec {
 
 #define CNV_REF       0x0
 #define CNV_DEL_HET   0x1
-#define CNV_DEL_HOM   0x3
+#define CNV_DEL_HOM   0x2
 #define CNV_DUP_HET   0x4
 #define CNV_DEL_DUP   0x5
-#define CNV_DUP_HOM   0xc
+#define CNV_DUP_HOM   0x8
 #define CNV_MASK      0xf
 
 extern struct cnv_spec * cnv_spec_init();

@@ -100,18 +100,18 @@ const char *explain_type(int flag)
     flag &= CNV_MASK;
     if ( !flag )
         return cnv_types[0];
-    if ( flag & CNV_DEL_HET ) {
-        if ( flag & CNV_DEL_HOM )
-            return cnv_types[2];                
-        if ( flag & CNV_DEL_DUP )
-            return cnv_types[5];
+    if ( flag & CNV_DEL_HET ) 
         return cnv_types[1];
-    } 
-    if ( flag & CNV_DUP_HET) {
-        if (flag & CNV_DUP_HOM)
-            return cnv_types[4];
+    if ( flag & CNV_DEL_HOM )
+        return cnv_types[2];                
+    if ( flag & CNV_DEL_DUP )
+        return cnv_types[5];
+
+    if ( flag & CNV_DUP_HET)
         return cnv_types[3];
-    }
+    if (flag & CNV_DUP_HOM)
+        return cnv_types[4];
+
     return cnv_types[6];
 }
 
