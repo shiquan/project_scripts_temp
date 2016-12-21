@@ -17,6 +17,9 @@ struct args {
     struct cnv_bed *node;
     struct cnv_spec *spec;
     int end;
+    int total;
+    int dup_only;
+    int del_only;
 } args = {
     .input_fname = NULL,
     .output_fname = NULL,
@@ -24,11 +27,22 @@ struct args {
     .fp_out = NULL,
     .node = NULL,
     .end = 0,
+    .total = 0,
+    .dup_only = 0,
+    .del_only = 0,
 };
 
 int usage(const char *name)
 {
-    fprintf(stderr, "%s -o output.tsv cnv_merged.bed [-min <min_length> -max <max_length>]\n", name);    
+    fprintf(stderr,
+            "%s [options] cnv_merged.bed\n"
+            "   "
+            "-min <min_length>         minimal length to filter\n"
+            "-max <max_length>         maximal length capped to if set\n"
+            "-total <sample numbers>   sample numbers, if set allele frequencies will output\n"
+            "-dup-only                 only output duplications\n"
+            "-del-only                 only output deletions\n"
+            , name);    
     return 1; 
 }
 int parse_args(int ac, char **av)
@@ -38,7 +52,7 @@ int parse_args(int ac, char **av)
     int i;
     const char *minimal = 0;
     const char *maximal = 0;
-    LOG_print("%d", ac);
+    const char *total = 0;
     for (i = 1; i < ac; ) {
         const char *a = av[i++];
         const char **var = 0;
@@ -46,8 +60,10 @@ int parse_args(int ac, char **av)
             var = &args.output_fname;
         else if ( strcmp(a, "-min") == 0 && minimal == 0 )
             var = &minimal;
-        else if ( strcmp(a, "-max") == 0 && maximal == 0 )
+        else if ( strcmp(a, "-max") == 0 && maximal == 0 )            
             var = &maximal;
+        else if ( strcmp(a, "-total") == 0 && total == 0 )
+            var = &total;
         
         if ( var != 0 ) {
             if ( i == ac )
@@ -55,6 +71,15 @@ int parse_args(int ac, char **av)
             *var = av[i++];
             continue;
         }
+        if ( strcmp(a, "-dup-only") == 0 ) {
+            args.dup_only = 1;
+            continue;
+        }
+        if ( strcmp(a, "-del-only") == 0 ) {
+            args.del_only = 1;
+            continue;
+        }
+        
         if (args.input_fname == 0) {
             args.input_fname = a;
             continue;
@@ -68,6 +93,10 @@ int parse_args(int ac, char **av)
         else
             return usage(av[0]);
     }
+
+    if ( args.del_only && args.dup_only )
+        error("-del-only and -dup-only are inconsistance.");
+    
     LOG_print("input : %s", args.input_fname);
     args.spec = cnv_spec_init();
     cnv_load_fname(args.spec, args.input_fname);
@@ -76,7 +105,10 @@ int parse_args(int ac, char **av)
         args.spec->min_length = str2int((char*)minimal);
     if ( maximal && check_num_likely(maximal) )
         args.spec->max_length = str2int((char*)maximal);
-
+    // assuming the processing sample are diplotype, the allele counts should be twice of sample numbers
+    if ( total && check_num_likely(total) )
+        args.total = str2int((char*)total) * 2; 
+    
     if ( args.output_fname ) {
         args.fp_out = fopen(args.output_fname, "w");
         if ( args.fp_out == NULL ) {
@@ -102,8 +134,21 @@ static void print_node(struct cnv_bed *node, struct cnv_bed *end)
             last_start = node->start;
             last_end = node->end;           
         } else if ( last_id != node->id || last_start != node->start || last_end != node->end) {
-            fprintf(args.fp_out, "%s\t%d\t%d\t<DUP>,<DEL>\t%d,%d\n",
-                    args.spec->chrom[last_id], last_start, last_end, dup_count, del_count);
+            fprintf(args.fp_out, "%s\t%d\t%d\t", args.spec->chrom[last_id], last_start, last_end);            
+            if ( args.dup_only) {
+                fprintf(args.fp_out, "<DUP>\t%d", dup_count);
+                if ( args.total )
+                    fprintf(args.fp_out, "\t%.5f", (float)dup_count/args.total);
+            } else if ( args.del_only) {
+                fprintf(args.fp_out, "<DEL>\t%d", del_count);
+                if ( args.total )
+                    fprintf(args.fp_out, "\t%.5f", (float)del_count/args.total);
+            } else {
+                fprintf(args.fp_out, "<DUP>,<DEL>\t%d,%d", dup_count, del_count);
+                if ( args.total )
+                    fprintf(args.fp_out, "\t%.5f,%.5f", (float)dup_count/args.total, (float)del_count/args.total);
+            }
+            fputc('\n', args.fp_out);
             last_id = node->id;
             last_start = node->start;
             last_end = node->end;
@@ -124,8 +169,21 @@ static void print_node(struct cnv_bed *node, struct cnv_bed *end)
         }
     }
     if ( last_id != -1) {
-        fprintf(args.fp_out, "%s\t%d\t%d\t<DUP>,<DEL>\t%d,%d\n",
-                args.spec->chrom[last_id], last_start, last_end, dup_count, del_count);
+        fprintf(args.fp_out, "%s\t%d\t%d\t", args.spec->chrom[last_id], last_start, last_end);            
+        if ( args.dup_only) {
+            fprintf(args.fp_out, "<DUP>\t%d", dup_count);
+            if ( args.total )
+                fprintf(args.fp_out, "\t%.5f", (float)dup_count/args.total);
+        } else if ( args.del_only) {
+            fprintf(args.fp_out, "<DEL>\t%d", del_count);
+            if ( args.total )
+                fprintf(args.fp_out, "\t%.5f", (float)del_count/args.total);
+        } else {
+            fprintf(args.fp_out, "<DUP>,<DEL>\t%d,%d", dup_count, del_count);
+            if ( args.total )
+                fprintf(args.fp_out, "\t%.5f,%.5f", (float)dup_count/args.total, (float)del_count/args.total);
+        }
+        fputc('\n', args.fp_out);
     }
 }
 
@@ -309,6 +367,7 @@ static int push_node(struct cnv_bed *node)
 int freq_calculate()
 {
     LOG_print("Start calculate frequencies.");
+
     while ( 1 ) {
         struct cnv_bed *node = malloc(sizeof(struct cnv_bed));
         if ( cnv_read(args.spec, node) == -1)
