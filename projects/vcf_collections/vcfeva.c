@@ -29,9 +29,7 @@ struct args {
     enum bool dotasref;
     enum bool export_uncov;
     int output_type;
-};
-
-struct args args = {
+} args = {
     .input_fname = 0,
     .output_fname = 0,
     .report_fname = 0,
@@ -90,7 +88,7 @@ int parse_args(int argc, char **argv)
 	else if ( strcmp(a, "-report") == 0 )
 	    arg_var = &args.report_fname;
 	else if ( strcmp(a, "-O") == 0 )
-	    
+            arg_var = &args
     }
     return 0;
 }
@@ -129,9 +127,10 @@ void write_report(uint32_t **m, bcf_hdr_t *hdr)
     int i, j;
     const char *title[] = { "REF", "HET", "HOM", "UNCOVER" };
     FILE *fp;
-    if ( report ) {
+    if ( args.report_fname ) {
 	fp = fopen(report, "w");
-	if ( fp == NULL ) errabort("%s : %s", report, strerror(errno));
+	if ( fp == NULL )
+            error("%s : %s", args.report_fname, strerror(errno));
     } else {
 	fp = stdout;
     }
@@ -177,6 +176,8 @@ typedef struct {
 
 int main(int argc, char **argv)
 {
+    if ( parse_args(argc, argv) )
+        return 1;
     int i, n;
     static struct option const long_opts[] =
     {
