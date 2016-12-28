@@ -9,8 +9,10 @@ extern int count_list(const void *list);
 
 typedef int comp_func(const void *elem1, const void *elem2);
 
-extern int sort_list(void *list, comp_func *func);
+typedef void delete_func(void *list);
 
+extern int sort_list(void *list, comp_func *func);
+extern void list_lite_delete(void *list, delete_func delete);
 #endif
 
 

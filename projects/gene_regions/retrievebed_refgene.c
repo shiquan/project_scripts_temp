@@ -202,9 +202,9 @@ int retrieve_from_dbref()
     ks = ks_init(fp);
     khiter_t k;
     kstring_t string = {0, 0, 0};
-    struct genepred line;
+    struct genepred line = {.clear = 1,};
     if (args.noheader == 0 ) 
-        fprintf(stdout, "#Chrom\tStart(0based)\tEnd(1based)\tStrand\tGene\tTranscript\tExon\tStart loc\tEnd loc\n");
+        fprintf(stdout, "#Chrom\tStart(0based)\tEnd(1based)\tStrand\tGene\tTranscript\tExon\tStart(p.)\tEnd(p.)\tStart(c.)\tEnd(c.)\n");
     while (ks_getuntil(ks, 2, &string, &dret) >= 0) {
         if ( string.l == 0 )
             continue;
