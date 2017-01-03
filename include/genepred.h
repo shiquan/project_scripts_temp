@@ -63,6 +63,7 @@ struct genepred_line {
     int exon_count;
     // [start, end]
     int *exons[2];
+    int loc_parsed;
     // Offsets location on gene.
     int *dna_ref_offsets[2];
     // Transcript locations of each block, coding transcripts consist of UTRs and CDS,

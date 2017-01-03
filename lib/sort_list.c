@@ -1,5 +1,4 @@
-#include <stdio.h>
-#include <stdlib.h>
+#include "utils.h"
 #include "sort_list.h"
 
 int count_list(const void *list)
@@ -69,9 +68,10 @@ int sort_rmdup_list(void *plist, comp_func *func, delete_func delete)
 void list_lite_delete(void *plist, delete_func delete)
 {
     struct list_lite **pp = (struct list_lite**)plist;
+    struct list_lite *list = *pp;
 
-    for ( ; *pp; ) {
-        struct list_lite *list = *pp;
+    while ( *pp ) {
+        list = *pp;
         *pp = list->next;
         delete(list);
     }

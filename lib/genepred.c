@@ -155,10 +155,12 @@ void clear_genepred_line(struct genepred_line *line)
         if ( line->exon_count ) {
             free(line->exons[0]);
             free(line->exons[1]);
-            free(line->loc[0]);
-            free(line->loc[1]);
-            free(line->dna_ref_offsets[0]);
-            free(line->dna_ref_offsets[1]);
+            if ( line->loc_parsed ) {
+                free(line->loc[0]);
+                free(line->loc[1]);
+                free(line->dna_ref_offsets[0]);
+                free(line->dna_ref_offsets[1]);
+            }
         }
     }
     memset(*pp, 0, sizeof(struct genepred_line));
@@ -239,9 +241,7 @@ char check_strand(char *strand)
 }
 static int parse_line_core(kstring_t *string, struct genepred_line *line)
 {
-    debug_print("%s", string->s);
     clear_genepred_line(line);
-
     int *splits;
     int nfields;
     splits = ksplit(string, 0, &nfields);
@@ -305,8 +305,6 @@ static int parse_line_core(kstring_t *string, struct genepred_line *line)
     // Alloc memory for exons[], exon_offset_pair[], and loc[].
     for ( i = 0; i < 2; i++ ) {
         line->exons[i] = calloc(line->exon_count, sizeof(int));
-        line->dna_ref_offsets[i] = calloc(line->exon_count, sizeof(int));
-        line->loc[i] = calloc(line->exon_count, sizeof(int));
     }
     // Release splits.
     free(splits);
@@ -338,20 +336,30 @@ int parse_line(kstring_t *string, struct genepred_line *line)
         error("Format error. Failed to parse line, %s", temp);
     // Release memory.
     free(temp);
-
+    return 0;
+}
+int parse_line_locs(struct genepred_line *line)
+{
+    if ( line->loc_parsed )
+        error("Double parsed.");
+    line->loc_parsed = 1;
     // Calculate the length of function regions, for plus strand, forward_length is the length of UTR5, and
     // backward_length is the length of UTR3. For minus strand, forward_length is the length of UTR3, and
     // backward_length is UTR5.
     int read_length     = 0;
     int forward_length  = 0;
     int backward_length = 0;
-    int i;
     int loc = 0;
+    int i;
     int exon_start, exon_end, exon_length;
     // Check the strand.
     int is_strand = line->strand == '+';
     // Check the transcript type, for noncoding RNA cdsstart == cdsend.
     int is_coding = line->cdsstart == line->cdsend ? 0 : 1;
+    for ( i = 0; i < 2; i++ ) {
+        line->dna_ref_offsets[i] = calloc(line->exon_count, sizeof(int));
+        line->loc[i] = calloc(line->exon_count, sizeof(int));
+    }
 
     // First loop. Purpose of this loop is trying to calculate the forward and backward length.
     // Meanwhile, the related location of the transcripts block edges will also be calculated.
@@ -669,7 +677,7 @@ struct genepred_line *genepred_retrieve_trans(struct genepred_spec *spec, const 
 
     char *ss = (char*)name;
     int check_version = 0;
-    for ( ; ss; ss++ ) {
+    for ( ; ss && *ss; ss++ ) {
         if ( *ss == '.' ) {
             check_version = 1;
         }
@@ -694,7 +702,7 @@ struct genepred_line *genepred_retrieve_trans(struct genepred_spec *spec, const 
                 if ( temp ) {
                     temp->next = temp1;
                 }
-                temp = temp1;                
+                temp = temp1;
             }
         } else if ( strcasecmp(node.name1, name) == 0 ) {            
             struct genepred_line *temp1 = genepred_line_copy(&node);
@@ -842,14 +850,17 @@ void retrieve_bed()
         if ( node == NULL )
             node = genepred_retrieve_trans(args.spec, args.fast);
         struct genepred_line *temp = node;
-        for ( ; temp; temp = temp->next ) 
+        for ( ; temp; temp = temp->next )  {
+            parse_line_locs(temp);
             generate_dbref_database(temp);
-        list_lite_delete(node, genepred_line_destroy);
+        }
+        list_lite_delete(&node, genepred_line_destroy);
     } else {
         struct genepred_line node;
         memset(&node, 0, sizeof(struct genepred_line));
         for ( ;; ) {
             if ( genepred_read_line(args.spec, &node) == 0 ) {
+                parse_line_locs(&node);
                 generate_dbref_database(&node);
             }
         }
