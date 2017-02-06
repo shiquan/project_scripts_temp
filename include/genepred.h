@@ -2,6 +2,7 @@
 #define GENEPRED_HEADER
 #include "htslib/hts.h"
 #include "htslib/tbx.h"
+#include "htslib/bgzf.h"
 #include "sort_list.h"
 
 // 

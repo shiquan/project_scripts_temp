@@ -67,3 +67,11 @@ enum var_type check_var_type(char *block, int block_length, int start, char *ref
     }
     return var_is_complex;
 }
+
+
+#ifndef SEQUENCE_MAIN
+#define SEQUENCE_MAIN
+
+
+
+#endif

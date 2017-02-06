@@ -3,10 +3,12 @@
 #include "number.h"
 #include "sort_list.h"
 #include "zlib.h"
+#include "file.h"
 #include "htslib/tbx.h"
 #include "htslib/khash.h"
 #include "htslib/kstring.h"
 #include "htslib/kseq.h"
+#include "htslib/bgzf.h"
 
 #define KSTRING_INIT {0, 0, 0 }
 
@@ -422,14 +424,15 @@ int parse_line_locs(struct genepred_line *line)
     int forward_offset, backward_offset;
     forward_offset = backward_offset = 0;
     // Count forward offsets.
-    for ( l1 = 0; l1 < line->exon_count && forward_length > 0; ++l1 ) {
+    for ( l1 = 0; forward_length > 0; ) {
         exon_length = line->exons[BLOCK_END][l1] - line->exons[BLOCK_START][l1] + 1;
         line->dna_ref_offsets[BLOCK_START][l1] = compact_loc(forward_length, is_strand ? REG_UTR5 : REG_UTR3);
         // Calculate the ends.
         if ( forward_length >= exon_length ) {
             forward_length -= exon_length;
-            line->dna_ref_offsets[BLOCK_END][i] = compact_loc(forward_length+1, is_strand ? REG_UTR5 : REG_UTR3);
+            line->dna_ref_offsets[BLOCK_END][l1] = compact_loc(forward_length+1, is_strand ? REG_UTR5 : REG_UTR3);
             // If the exon is all UTRs, continue until meet cds region.
+            ++l1;
             continue;
         }
         // If meet cds region in this exon.
@@ -459,7 +462,7 @@ int parse_line_locs(struct genepred_line *line)
     }
     
     // Count backward offsets.
-    for ( l2 = line->exon_count -1; l2 > l1 && backward_length > 0; --l2) {
+    for ( l2 = line->exon_count -1;  backward_length > 0; ) {
         exon_length = line->exons[BLOCK_END][l2] - line->exons[BLOCK_START][l2] + 1;
         // Set the end edge.
         line->dna_ref_offsets[BLOCK_END][l2] = compact_loc(backward_length, is_strand ? REG_UTR3 : REG_UTR5);
@@ -469,6 +472,7 @@ int parse_line_locs(struct genepred_line *line)
         if ( backward_length >= exon_length ) {
             backward_length -= exon_length;
             line->dna_ref_offsets[BLOCK_START][l2] = compact_loc(backward_length + 1, is_strand ? REG_UTR3 : REG_UTR5);
+            --l2;
             // Continue until meet cds region.
             continue;
         }
@@ -527,7 +531,7 @@ int parse_line_locs(struct genepred_line *line)
 }
 int read_line(struct genepred_spec *spec, kstring_t *string)
 {
-    int dret, ret;
+    // int dret, ret;
     for ( ;; ) {
         if ( hts_getline(spec->fp, KS_SEP_LINE, string) < 0 )
             return 1;
@@ -569,21 +573,39 @@ struct genepred_line *genepred_line_copy(struct genepred_line *line)
 
     int i;
     struct genepred_line *nl = genepred_line_create();
-    memcpy(nl, line, sizeof(struct genepred_line));
+    //memcpy(nl, line, sizeof(struct genepred_line));
+    nl->next = line->next;
+    nl->chrom = strdup(line->chrom);
+    nl->txstart = line->txstart;
+    nl->txend = line->txend;
+    nl->strand = line->strand;
+    nl->name1 = strdup(line->name1);
+    nl->name2 = strdup(line->name2);
+    nl->cdsstart = line->cdsstart;
+    nl->cdsend = line->cdsend;
+    nl->forward_length = line->forward_length;
+    nl->backward_length = line->backward_length;
+    nl->reference_length = line->reference_length;
+    nl->exon_count = line->exon_count;
+        
     for ( i = 0; i < 2; ++i ) {
         nl->exons[i] = calloc(line->exon_count, sizeof(int));
-        nl->dna_ref_offsets[i] = calloc(line->exon_count, sizeof(int));
-        nl->loc[i] = calloc(line->exon_count, sizeof(int));
         memcpy(nl->exons[i], line->exons[i], sizeof(int) *line->exon_count);
-        memcpy(nl->dna_ref_offsets[i], line->dna_ref_offsets[i], sizeof(int) *line->exon_count);
-        memcpy(nl->loc[i], line->loc[i], sizeof(int) *line->exon_count);
+    }
+    if ( line->loc_parsed ) {
+        for ( i = 0; i < 2; ++i ) {
+            nl->dna_ref_offsets[i] = calloc(line->exon_count, sizeof(int));
+            nl->loc[i] = calloc(line->exon_count, sizeof(int));
+            memcpy(nl->dna_ref_offsets[i], line->dna_ref_offsets[i], sizeof(int) *line->exon_count);
+            memcpy(nl->loc[i], line->loc[i], sizeof(int) *line->exon_count);
+        }
     }
     return nl;
 }
 char *generate_dbref_header()
 {
     kstring_t string = KSTRING_INIT;
-    kputs("#Chrom\tStart\tEnd\tStrand\tGene\tTranscript\tExon\tStart(p.)\tEnd(p.)\tStart(c.)\tEnd(c.)\n", &string);
+    kputs("#Chrom\tStart\tEnd\tStrand\tGene\tTranscript\tExon\tStart(p.)\tEnd(p.)\tStart(c.)\tEnd(c.)", &string);
     return string.s;
 }
 void generate_dbref_database(struct genepred_line *line)
@@ -638,7 +660,6 @@ void generate_dbref_database(struct genepred_line *line)
     free(temp[0].s);
     free(temp[1].s);
 }
-
 struct genepred_line *genepred_retrieve_gene(struct genepred_spec *spec, const char *name)
 {
     kstring_t string = KSTRING_INIT;
@@ -646,7 +667,10 @@ struct genepred_line *genepred_retrieve_gene(struct genepred_spec *spec, const c
     struct genepred_line *temp = NULL;
     struct genepred_line node;
     memset(&node, 0, sizeof(node));
-    
+    // Rewind file.
+    if ( file_seek(spec->fp, 0, SEEK_SET) < 0 )
+        return NULL;
+
     // For gene could transcript to several transcripts, so need to read all database through to retrieve all transcripts.
     for ( ;; ) {
         if ( read_line(spec, &string) )
@@ -680,8 +704,13 @@ struct genepred_line *genepred_retrieve_trans(struct genepred_spec *spec, const 
     for ( ; ss && *ss; ss++ ) {
         if ( *ss == '.' ) {
             check_version = 1;
+            break;
         }
     }
+
+    if ( file_seek(spec->fp, 0, SEEK_SET) < 0 )
+        return NULL;
+
     // For transcript, may align to different contigs or alternative locuses, so also need to read all database throght.    
     for ( ;; ) {
         if ( read_line(spec, &string) )
