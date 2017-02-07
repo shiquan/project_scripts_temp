@@ -1,5 +1,8 @@
 #ifndef HGVSLIB_HEADER
 #define HGVSLIB_HEADER
+#include <stdio.h>
+#include <stdlib.h>
+#include "sequence.h"
 
 enum func_region_type {
     _func_region_promote_to_int = -1,
@@ -19,36 +22,25 @@ struct var_func_type {
     int start_flag; // region start flag for cds or intron count,
     // flag & 1 == 1 for intron else for cds/utr/exon
 };
-
-//  hgvs_core keeps transcript/protein name, the format of hgvs name is construct by
-//                                    l_name   l_name2  l_type
-//                                    |        |        |
-//  [transcript|protein|gene|ensemble](gene_id):"prefix".postion...
-//
-//  l_name          l_type
-//  |               |
-//  [chrom]:"prefix".postion...
-struct hgvs_core {    
-    uint16_t l_name; // name offset in the data cache, for chrom l_name == 0;
-    uint16_t l_name2; // name2 offset in data cache, if no name2, l_name2 should be 0
-    uint16_t l_type; // the byte after type offset, usually offset of '.'
-    kstring_t str;
-    struct var_func_type type;   
+enum postype {
+    _type_unknown = -1,
+    type_genome, // g.
+    type_coding, // c.
+    type_noncoding,   // n. 
+};
+struct hgvs_name {
+    char *name; // transcripts name, locus name
+    char *name1; // gene name or null 
+    enum postype ptype;
+    int pos;
+    int end_pos; 
+    int offset;
+};
+struct hgvs_core {
+    struct hgvs_name name;
+    struct var_func_type des;
 };
 
-// Dynamic allocate and init technology.
-// For struct { int l, m, i; void *a }, a is the cached array of predefined type. l for used length, m for max length,
-// i for inited length. And i always >= l, and m always >= i. If l == m, the cache array should be reallocated by a new
-// memory size. This structure used to reuse the cache complex structures other than points.
-struct hgvs {
-    int l, m, i; 
-    struct hgvs_core *a;
-};
-struct hgvs_cache {
-    int l, m, i; // l == n_allele -1
-    struct hgvs *a;
-};
-#define HGVS_CACHE_INIT { 0, 0, 0, 0 }
 // HGVS nomenclature : 
 // DNA recommandations 
 // - substitution variant, 
@@ -82,13 +74,14 @@ enum hgvs_variant_type {
     var_type_complex, 
     var_type_unknow,
 };
+
 // descriptions struct of hgvs name
 struct hgvs_des {
     // if type ==  var_type_ref, hgvs name generater will skip to construct a name, only type will be inited, 
     // DONOT use any other value in this struct then 
     enum hgvs_variant_type type;
-    uint8_t strand; // for plus strand start <= end, for minus start >= end
-    int32_t start; // position on ref
+
+    int32_t start; // position on genome
     // for var_type_snp end == start, for var_type_dels end > start, for var_type_ins end = start +1, 
     // for delvar_type_ins end > start 
     int32_t end;
@@ -105,6 +98,12 @@ struct hgvs_des {
     // databases and if there is copy number changed (more or less), the variants will update to var_type_copy 
     int tandam_repeat_number;
     int tandam_repeat_number_ori;
+    
+    // For struct { int l, m, i; void *a }, a is the cached array of predefined type. l for used length, m for max length,
+    // i for inited length. And i always >= l, and m always >= i. If l == m, the cache array should be reallocated by a new
+    // memory size. This structure used to reuse the cache complex structures other than points.    
+    int l, m, i;
+    struct hgvs_core *a;
 };
 
 #endif
