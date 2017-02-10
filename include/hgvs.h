@@ -29,8 +29,8 @@ enum postype {
     type_noncoding,   // n. 
 };
 struct hgvs_name {
-    char *name; // transcripts name, locus name
-    char *name1; // gene name or null 
+    char *name1; // transcripts name, locus name
+    char *name2; // gene name or null 
     enum postype ptype;
     int pos;
     int end_pos; 
@@ -80,7 +80,7 @@ struct hgvs_des {
     // if type ==  var_type_ref, hgvs name generater will skip to construct a name, only type will be inited, 
     // DONOT use any other value in this struct then 
     enum hgvs_variant_type type;
-
+    char *chrom;
     int32_t start; // position on genome
     // for var_type_snp end == start, for var_type_dels end > start, for var_type_ins end = start +1, 
     // for delvar_type_ins end > start 
@@ -98,11 +98,8 @@ struct hgvs_des {
     // databases and if there is copy number changed (more or less), the variants will update to var_type_copy 
     int tandam_repeat_number;
     int tandam_repeat_number_ori;
-    
-    // For struct { int l, m, i; void *a }, a is the cached array of predefined type. l for used length, m for max length,
-    // i for inited length. And i always >= l, and m always >= i. If l == m, the cache array should be reallocated by a new
-    // memory size. This structure used to reuse the cache complex structures other than points.    
-    int l, m, i;
+
+    int l, m;
     struct hgvs_core *a;
 };
 

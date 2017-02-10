@@ -125,6 +125,24 @@ struct genepred_spec *genepred_load_data(struct genepred_spec *spec, const char 
 
     return spec;
 }
+struct genepred_spec *genepred_load_fasta(struct genepred_spec *spec, const char *fname)
+{
+    if ( spec == NULL )
+        error("Invoke genepred_spec_init() before load fasta file.");
+
+    if ( fname == NULL )
+        error("No fasta file specified.");
+
+    spec->fai_fname = fname;
+
+    // Load the faidx of fasta file.
+    spec->fai = fai_load(fname);
+    if (spec->fai == NULL)
+        error("%s : %s.", fname, strerror(errno));
+
+    return spec;
+}
+
 struct genepred_spec *genepred_load_genes(struct genepred_spec *spec, const char *fname)
 {
     spec->genes = init_list(fname);

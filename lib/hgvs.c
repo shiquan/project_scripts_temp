@@ -21,6 +21,8 @@ void hgvs_des_clear(struct hgvs_des *des)
         hgvs_core_clear(&des->a[i]);
     }
     free(des->a);
+    if ( des->chrom )
+        free(des->chrom);
     if ( des->ref_length )
         free(des->ref);
     if ( des->alt_length )
@@ -28,20 +30,42 @@ void hgvs_des_clear(struct hgvs_des *des)
     memset(des, 0, sizeof(struct hgvs_des));
 }
 
-int init_hgvs_spec(const char *fname)
+int init_hgvs_spec(const char *fname, const char *fasta)
 {
     memset(&spec, 0, sizeof(struct hgvs_spec));
+    spec.data = genepred_spec_init();
+    if ( genepred_load_data(spec.data, fname) == NULL )
+        return 1;
+    if ( genepred_load_fasta(spec.data, fasta) == NULL )
+        return 1;
+    
+    return 0;
+}
+// Standard HGVS name should be NM_0001.2:c.123A>G; tolerant format could be NM_0001:c.123A>G (no version number);
+// 
+int check_hgvs_name(char *name)
+{
+}
+int parse_hgvs_name(char *name)
+{
+    if ( check_hgvs_name(name) )
+        return 1;
 
     return 0;
 }
-
-int parse_hgvs_name(char *name)
-{
-}
-
+// Fill all possible HGVS names for this variant.
 int fill_hgvs_name()
 {
+    // Check the position inited.
+    struct hgvs_des *des = &spec.des;
+    if ( des->start == 0 )
+        error("Variant position is not inited.");
+
+    struct 
+    
+        
 }
+
 
 #ifdef HGVS_MAIN
 int usage()
@@ -55,6 +79,12 @@ int parse_args(int ac, char **av)
 {
 }
 
+void convert_hgvs()
+{
+}
+void release_memory()
+{
+}
 int main(int argc, char **argv)
 {
     if ( parse_args(--argc, ++argv) )

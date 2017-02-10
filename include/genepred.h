@@ -2,6 +2,7 @@
 #define GENEPRED_HEADER
 #include "htslib/hts.h"
 #include "htslib/tbx.h"
+#include "htslib/faidx.h"
 #include "htslib/bgzf.h"
 #include "sort_list.h"
 
@@ -95,6 +96,8 @@ struct list {
 struct genepred_spec {
     const char *data_fname;
     htsFile *fp;
+    const char *fai_fname;
+    faidx_t *fai;
     tbx_t *idx;
     struct list *genes;
     struct list *trans;
@@ -111,6 +114,7 @@ struct genepred_spec *genepred_spec_init();
 void genepred_spec_destroy(struct genepred_spec *spec);
 
 extern struct genepred_spec *genepred_load_data(struct genepred_spec *spec, const char *fname);
+extern struct genepred_spec *genepred_load_fasta(struct genepred_spec *spec, const char *fname);
 extern struct genepred_spec *genepred_load_genes(struct genepred_spec *spec, const char *fname);
 extern struct genepred_spec *genepred_load_trans(struct genepred_spec *spec, const char *fname);
 extern struct genepred_line *genepred_retrieve_gene(struct genepred_spec *spec, const char *name);
