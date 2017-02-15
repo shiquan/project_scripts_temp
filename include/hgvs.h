@@ -35,6 +35,7 @@ struct hgvs_name {
     int pos;
     int end_pos; 
     int offset;
+    int end_offset;
 };
 struct hgvs_core {
     struct hgvs_name name;

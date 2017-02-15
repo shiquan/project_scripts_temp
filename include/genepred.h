@@ -112,6 +112,8 @@ extern void genepred_line_destroy(void *line);
 
 struct genepred_spec *genepred_spec_init();
 void genepred_spec_destroy(struct genepred_spec *spec);
+extern int parse_line(kstring_t *string, struct genepred_line *line);
+extern int parse_line_locs(struct genepred_line *line);
 
 extern struct genepred_spec *genepred_load_data(struct genepred_spec *spec, const char *fname);
 extern struct genepred_spec *genepred_load_fasta(struct genepred_spec *spec, const char *fname);
