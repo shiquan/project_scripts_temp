@@ -1,9 +1,15 @@
 #include "utils.h"
+#include "hgvs.h"
 #include "genepred.h"
+#include <stdlib.h>
+#include <string.h>
+#include <regex.h>
 
 struct hgvs_spec {
     struct genepred_spec *data;
     struct hgvs_des des;
+    // To parse hgvs nomen.
+    regex_t *exp;
 } spec;
 
 void hgvs_core_clear(struct hgvs_core *core)
@@ -17,7 +23,7 @@ void hgvs_core_clear(struct hgvs_core *core)
 void hgvs_des_clear(struct hgvs_des *des)
 {
     int i;
-    for ( i = 0; i < des->i; ++i) {
+    for ( i = 0; i < des->l; ++i) {
         hgvs_core_clear(&des->a[i]);
     }
     free(des->a);
@@ -29,7 +35,12 @@ void hgvs_des_clear(struct hgvs_des *des)
         free(des->alt);
     memset(des, 0, sizeof(struct hgvs_des));
 }
-
+void hgvs_spec_destroy()
+{
+    genepred_spec_destroy(spec.data);
+    hgvs_des_clear(&spec.des);
+    free(spec.exp);
+}
 int init_hgvs_spec(const char *fname, const char *fasta)
 {
     memset(&spec, 0, sizeof(struct hgvs_spec));
@@ -38,13 +49,40 @@ int init_hgvs_spec(const char *fname, const char *fasta)
         return 1;
     if ( genepred_load_fasta(spec.data, fasta) == NULL )
         return 1;
-    
+    spec.exp = (regex_t*)malloc(sizeof(regex_t));
+    int rv;
+    rv = regcomp(spec.exp, "(.*):[gcn][.](.*)", REG_EXTENDED);
+    if ( rv != 0 ) {
+        error("regcomp failed with %d.", rv);
+    }
     return 0;
 }
 // Standard HGVS name should be NM_0001.2:c.123A>G; tolerant format could be NM_0001:c.123A>G (no version number);
-// 
+// Check string format could be parsed and convert cds position to genome position.
+// This code is fragile, improve me.
 int check_hgvs_name(char *name)
 {
+    // Only allow match once.
+    regmatch_t matches[1]; 
+    if ( regexec(spec.exp, name, 1, matches, 0) ) {
+        int i, l;
+        l = strlen(name);
+        fprintf(stderr, "%s\n", name);
+        for (i = 0; i < matches[0].rm_so; ++i ) {
+            fprintf(stderr, ANSI_COLOR_RED "%c" ANSI_COLOR_RESET, '^');
+        }
+        for (i = matches[0].rm_so; i < matches[0].rm_eo; ++i ) {
+            fprintf(stderr, ANSI_COLOR_GREEN "%c" ANSI_COLOR_RESET, '~');
+        }
+        for (i = matches[0].rm_eo; i < l; ++i) {
+            fprintf(stderr, ANSI_COLOR_RED "%c" ANSI_COLOR_RESET, '^');
+        }
+        fprintf(stderr, "\n");
+        return 1;
+    }
+
+    
+    return 0;
 }
 int parse_hgvs_name(char *name)
 {
@@ -59,7 +97,7 @@ int find_the_block(struct genepred_line *line, int *blk_start, int *blk_end, int
     *blk_start = -1;
     *blk_end = -1;
     int i;
-    for ( i = 0; i < line->exoncount; ++i ) {
+    for ( i = 0; i < line->exon_count; ++i ) {
         int start = line->exons[BLOCK_START][i];
         int end = line->exons[BLOCK_END][i];
         if ( pos < start) {
@@ -81,15 +119,13 @@ int find_locate(struct genepred_line *line, int *pos, int *offset, int start)
     int i;
     int blk_start = 0;
     int blk_end = 0;
-    for (i = 0; i < line->exoncount; ++i) {        
+    for (i = 0; i < line->exon_count; ++i) {        
         if ( find_the_block(line, &blk_start, &blk_end, start ) )
             return 1;
         // Exon.
         if ( blk_start == blk_end ) {
-
-            int offset = start - line->exons[BLOCK_START][blk_start];
+            int for_offset = start - line->exons[BLOCK_START][blk_start];
             int back_offset = line->exons[BLOCK_END][blk_start] - start;
-            
             int offset1 = read_loc(line->dna_ref_offsets[BLOCK_START][blk_start]);
             int offset2 = read_loc(line->dna_ref_offsets[BLOCK_END][blk_start]);
             int type1 = read_type(line->dna_ref_offsets[BLOCK_START][blk_start]);
@@ -97,37 +133,37 @@ int find_locate(struct genepred_line *line, int *pos, int *offset, int start)
             int pos1;
             int pos2; 
             if ( type1 == type2 ) {
-                pos1 = offset1 - offset;
+                pos1 = offset1 - for_offset;
                 pos2 = offset2 + back_offset;
                 if ( pos1 != pos2 ) {
-                    pos1 = offset1 + offset;
+                    pos1 = offset1 + for_offset;
                     pos2 = offset2 - back_offset;
                     assert(pos1 == pos2);
                 }
             } else {
-                pos1 = offset1 - offset;
+                pos1 = offset1 - for_offset;
                 pos2 = offset2 - back_offset;
             }
             
             if ( pos1 > 0 && pos2 > 0 ) {
-                *pos = compact_loc(offset1 + offset, type1);
+                *pos = compact_loc(offset1 + for_offset, type1);
                 break;
             }
             if ( pos1 < 0 ) {
-                if ( type2 ==  REG_CODING && strand == '-' )
+                if ( type2 ==  REG_CODING && line->strand == '-' )
                     pos2 = offset2 + back_offset;
                 if ( pos2 > 0 ) {
                     *pos = compact_loc(pos2, type2);
                 } else {
-                    int posi = strand == '+' ? 1 - pos1 : 1 - pos2;
+                    int posi = line->strand == '+' ? 1 - pos1 : 1 - pos2;
                     *pos = compact_loc(posi, REG_CODING);
                 }
                 break;
             }
 
             if ( pos2 < 0 ) {
-                if ( type1 == REG_CODING && strand == '+')
-                    pos1 = offset1 + offset;
+                if ( type1 == REG_CODING && line->strand == '+')
+                    pos1 = offset1 + for_offset;
                 *pos = compact_loc(pos1, type1);
             }                
             *offset = 0;
@@ -143,7 +179,7 @@ int find_locate(struct genepred_line *line, int *pos, int *offset, int start)
             }
             if (blk_end == -1) {
                 // happens at the downstream of gene region
-                assert(blk_start == line->exoncount -1 );
+                assert(blk_start == line->exon_count -1 );
                 *pos = line->dna_ref_offsets[BLOCK_END][blk_start];
                 *offset = start - line->exons[BLOCK_END][blk_end];
                 break;
@@ -189,7 +225,7 @@ int fill_hgvs_name()
     if ( des->start == 0 )
         error("Variant position is not inited.");
 
-    struct genepred_line *line = genepred_retrieve_region(spec->data, des->name, des->start, des->end);
+    struct genepred_line *line = genepred_retrieve_region(spec.data, des->chrom, des->start, des->end);
 
     for ( ;; ) {
         if ( line == NULL )
@@ -201,7 +237,7 @@ int fill_hgvs_name()
         }
 
         hgvs_core_clear(&des->a[des->l]);
-        if ( generate_hgvs_core(line, &des->a[des->l]) == 0 )
+        if ( generate_hgvs_core(line, &des->a[des->l], des->start, des->end) == 0 )
             des->l ++;
         struct genepred_line * temp = line;
         line = line->next;
@@ -220,6 +256,30 @@ int usage()
 }
 int parse_args(int ac, char **av)
 {
+    if ( ac == 0 )
+        return usage();
+    const char *data_fname = 0;
+    const char *fasta = 0;
+    int i;
+    for ( i =0; u < argc; ) {
+        const char *a = av[i++];
+        const char *var = 0;
+        if ( strcmp(a, "-data") == 0  && data_fname == 0 )
+            var = &data_fname;
+        else if ( strcmp(a, "-fasta") == 0 && fasta == 0 )
+            var = &fasta;
+
+        if ( var != 0) {
+            if (i == ac) {
+                fprintf(stderr, "Missing an argument after %s.", a);
+                return 1;
+            }
+            *var = av[i++];
+        }
+    }
+    
+    parse_hgvs_name(av[0]);
+    return 0;
 }
 
 void convert_hgvs()

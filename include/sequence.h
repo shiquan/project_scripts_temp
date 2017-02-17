@@ -164,7 +164,6 @@ static inline const char *var_type_string(enum var_type type)
         "splice acceptor",
         "complex",
         NULL,
-        NULL,
     };
     assert(type >= 0);
     return vartypes[type];
