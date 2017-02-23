@@ -55,12 +55,14 @@ int init_hgvs_spec(const char *fname, const char *fasta)
     if ( rv != 0 ) {
         error("regcomp failed with %d.", rv);
     }
+
+    
     return 0;
 }
 // Standard HGVS name should be NM_0001.2:c.123A>G; tolerant format could be NM_0001:c.123A>G (no version number);
 // Check string format could be parsed and convert cds position to genome position.
 // This code is fragile, improve me.
-int check_hgvs_name(char *name)
+int check_hgvs_name(const char *name)
 {
     // Only allow match once.
     regmatch_t matches[1]; 
@@ -84,7 +86,7 @@ int check_hgvs_name(char *name)
     
     return 0;
 }
-int parse_hgvs_name(char *name)
+int parse_hgvs_name(const char *name)
 {
     if ( check_hgvs_name(name) )
         return 1;
@@ -260,10 +262,11 @@ int parse_args(int ac, char **av)
         return usage();
     const char *data_fname = 0;
     const char *fasta = 0;
+    const char *name = 0;
     int i;
-    for ( i =0; u < argc; ) {
+    for ( i =0; i < ac; ) {
         const char *a = av[i++];
-        const char *var = 0;
+        const char **var = 0;
         if ( strcmp(a, "-data") == 0  && data_fname == 0 )
             var = &data_fname;
         else if ( strcmp(a, "-fasta") == 0 && fasta == 0 )
@@ -275,10 +278,29 @@ int parse_args(int ac, char **av)
                 return 1;
             }
             *var = av[i++];
+            continue;
         }
+        if ( name == 0 ) {
+            name = a;
+            continue;
+        }
+        fprintf(stderr, "Unknown argument : %s", a);
+        return 1;
     }
-    
-    parse_hgvs_name(av[0]);
+
+    if ( data_fname == NULL )
+        error("-data genepred databases is required.");
+
+    if ( fasta == NULL )
+        error("-fasta transcripts fasta file is required.");
+    if ( init_hgvs_spec(data_fname, fasta) )
+        return 1;
+    if ( parse_hgvs_name(name) ) {
+        error("Failed to parse name string.");
+        return 1;
+    }
+        
+
     return 0;
 }
 
