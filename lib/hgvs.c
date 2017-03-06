@@ -83,6 +83,17 @@ int check_hgvs_name(const char *name)
         return 1;
     }
 
+    // Check the chromosome or transcript name.
+
+    // Check the variant type.
+
+
+    // Check the start position.
+
+    // Check the end position.
+
+    // Check the variants.
+
     
     return 0;
 }
@@ -300,7 +311,7 @@ int parse_args(int ac, char **av)
         return 1;
     }
         
-
+    
     return 0;
 }
 

@@ -19,21 +19,37 @@ enum func_region_type {
 struct var_func_type {
     enum func_region_type func;
     enum var_type vartype;
-    int start_flag; // region start flag for cds or intron count,
+    int count; // exon or intron count,
     // flag & 1 == 1 for intron else for cds/utr/exon
 };
-enum postype {
-    _type_unknown = -1,
-    type_genome, // g.
-    type_coding, // c.
-    type_noncoding,   // n. 
-};
+/* enum postype { */
+/*     _type_unknown = -1, */
+/*     type_genome, // g. */
+/*     type_coding, // c. */
+/*     type_noncoding,   // n.  */
+/* }; */
+#define REG_NONCODING  1
+#define REG_CODING     2
+#define REG_UTR5       4
+#define REG_UTR3       8
 struct hgvs_name {
     char *name1; // transcripts name, locus name
     char *name2; // gene name or null 
-    enum postype ptype;
+
+    // The gene position format is same with genepred dna reference offset consist of two parts: the offset value
+    // and the function region construct a 32-bits value.
+    // coding/nocoding coordinate
+    // 32                        4321
+    // |_________________________||||
+    // ONLY one-bit below is accept per value
+    // 
+    // offset 1:  is_noncoding
+    // offset 2:  is_coding
+    // offset 3:  is_utr5
+    // offset 4:  is_utr3
     int pos;
-    int end_pos; 
+    int end_pos;
+    
     int offset;
     int end_offset;
 };
