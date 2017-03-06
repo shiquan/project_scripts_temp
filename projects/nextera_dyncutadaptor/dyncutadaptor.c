@@ -50,7 +50,7 @@ struct args {
     const char *out1;
     const char *out2;
 } args = {
-    .seed = 0,
+    .seed = 5,
     .slave_mode = 1,
     .minimum = 0,
     .mismatch = 1,
@@ -445,19 +445,19 @@ int parse_args(int ac, char **av)
             return usage(1);
 
         const char **arg_var = 0;
-        if ( strcmp(a, "-fastq1") == 0  && args.fastq1 == 0 )
+        if ( (strcmp(a, "-fastq1") == 0 || strcmp(a, "-f") == 0)  && args.fastq1 == 0 )
             arg_var = &args.fastq1;
-        else if ( strcmp(a, "-fastq2") == 0 && args.fastq2 == 0 )
+        else if ( (strcmp(a, "-fastq2") == 0 || strcmp(a, "-r") == 0 ) && args.fastq2 == 0 )
             arg_var = &args.fastq2;
-        else if ( strcmp(a, "-outfq1") == 0 && args.out1 == 0 )
+        else if ( (strcmp(a, "-outfq1") == 0 || strcmp(a, "-o") == 0 ) && args.out1 == 0 )
             arg_var = &args.out1;
-        else if ( strcmp(a, "-outfq2") == 0 && args.out2 == 0 )
+        else if ( (strcmp(a, "-outfq2") == 0 || strcmp(a, "-p") == 0 ) && args.out2 == 0 )
             arg_var = &args.out2;
-        else if ( strcmp(a, "-min") == 0 && minimum == 0 )
+        else if ( (strcmp(a, "-min") == 0 || strcmp(a, "-m") == 0 ) && minimum == 0 )
             arg_var = &minimum;
-        else if ( strcmp(a, "-seed") == 0 && seed == 0 )
+        else if ( (strcmp(a, "-seed") == 0 || strcmp(a, "-s") == 0 ) && seed == 0 )
             arg_var = &seed;
-        else if ( strcmp(a, "-mis") == 0 && mismatch == 0 )
+        else if ( (strcmp(a, "-mis") == 0 || strcmp(a, "-i") == 0 ) && mismatch == 0 )
             arg_var = &mismatch;
         else if ( strcmp(a, "-adaptor") == 0 && adaptor == 0 )
             arg_var = &adaptor;
@@ -533,7 +533,7 @@ int parse_args(int ac, char **av)
         args.out1 = "reads1.fq";
 
     if ( args.out2 == NULL )
-        args.out2 = "read2.fq";
+        args.out2 = "reads2.fq";
     
     return 0;
 }
