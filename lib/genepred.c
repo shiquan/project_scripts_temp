@@ -296,11 +296,13 @@ static int parse_line_core(kstring_t *string, struct genepred_line *line)
     // Parse cds start, for mRNA cds start should be the downstream of txstart; for noncoding RNA
     // cds start should be equal to txend.
     BRANCH(line->cdsstart, type->cdsstart, str2int);
-    // Convert 0 based cdsstart to 1 based.    
-    line->cdsstart++;
     
     // Parse cds end. for noncoding RNA cdsend == cdsstart == txend.
     BRANCH(line->cdsend, type->cdsend, str2int);
+
+    // Convert 0 based cdsstart to 1 based. Only for coding transcript.
+    if ( line->cdsstart != line->cdsend )
+        line->cdsstart++;
 
     // Parse exon number.
     BRANCH(line->exon_count, type->exon_count, str2int);
@@ -416,15 +418,18 @@ int parse_line_locs(struct genepred_line *line)
     }
 
     // read_length is the coding reference length for coding transcript or length of noncoding transcript
-    read_length = line->reference_length - forward_length - backward_length;
-
-    // Init forward and backward length. For minus strand, reverse the backward and forward length.
-    if ( is_strand ) {
-        line->forward_length = forward_length;
-        line->backward_length = backward_length;
-    } else {
-        line->forward_length = backward_length;
-        line->backward_length = forward_length;
+    if ( is_coding == 0 ) {
+        read_length = line->reference_length;
+    }  else {
+        read_length = line->reference_length - forward_length - backward_length;
+        // Init forward and backward length. For minus strand, reverse the backward and forward length.
+        if ( is_strand ) {
+            line->forward_length = forward_length;
+            line->backward_length = backward_length;
+        } else {
+            line->forward_length = backward_length;
+            line->backward_length = forward_length;
+        }
     }
 
     // For minus strand, reverse the locations.
@@ -603,16 +608,16 @@ struct genepred_line *genepred_line_copy(struct genepred_line *line)
     nl->backward_length = line->backward_length;
     nl->reference_length = line->reference_length;
     nl->exon_count = line->exon_count;
-        
+    nl->loc_parsed = line->loc_parsed;
     for ( i = 0; i < 2; ++i ) {
         nl->exons[i] = calloc(line->exon_count, sizeof(int));
         memcpy(nl->exons[i], line->exons[i], sizeof(int) *line->exon_count);
     }
-    for ( i = 0; i < 2; ++i ) {
-        // nl->dna_ref_offsets[i] = calloc(line->exon_count, sizeof(int));
-        nl->loc[i] = calloc(line->exon_count, sizeof(int));
-        // memcpy(nl->dna_ref_offsets[i], line->dna_ref_offsets[i], sizeof(int) *line->exon_count);
-        memcpy(nl->loc[i], line->loc[i], sizeof(int) *line->exon_count);
+    if ( nl->loc_parsed ) {
+        for ( i = 0; i < 2; ++i ) {
+            nl->loc[i] = calloc(line->exon_count, sizeof(int));
+            memcpy(nl->loc[i], line->loc[i], sizeof(int) *line->exon_count);
+        }
     }
     return nl;
 }
@@ -632,20 +637,20 @@ void generate_dbref_database(struct genepred_line *line)
         int exon_id;
         if ( line->strand == '+' ) {
             exon_id = i + 1;
-            if ( line->loc[BLOCK_START][i] <= line->forward_length ) {
+            if ( line->loc[BLOCK_START][i] < line->forward_length ) {
                 kputc('-', &temp[0]);
                 kputw(line->forward_length - line->loc[BLOCK_START][i] + 1, &temp[0]);
-            } else if ( line->loc[BLOCK_START][i] >= line->reference_length - line->backward_length ) {
+            } else if ( line->loc[BLOCK_START][i] > line->reference_length - line->backward_length ) {
                 kputc('*', &temp[0]);
                 kputw(line->loc[BLOCK_START][i] - (line->reference_length - line->backward_length), &temp[0]);
             } else {
                 kputw(line->loc[BLOCK_START][i] - line->forward_length, &temp[0]);
             }
 
-            if ( line->loc[BLOCK_END][i] <= line->forward_length ) {
+            if ( line->loc[BLOCK_END][i] < line->forward_length ) {
                 kputc('-', &temp[1]);
                 kputw(line->forward_length - line->loc[BLOCK_END][i] + 1, &temp[1]);
-            } else if ( line->loc[BLOCK_END][i] >= line->reference_length - line->backward_length ) {
+            } else if ( line->loc[BLOCK_END][i] > line->reference_length - line->backward_length ) {
                 kputc('*', &temp[1]);
                 kputw(line->loc[BLOCK_END][i] - (line->reference_length - line->backward_length), &temp[1]);
             } else {
@@ -654,20 +659,20 @@ void generate_dbref_database(struct genepred_line *line)
         } else {
             exon_id = line->exon_count -i;
 
-            if ( line->loc[BLOCK_START][i] <= line->backward_length ) {
+            if ( line->loc[BLOCK_START][i] < line->backward_length ) {
                 kputc('-', &temp[0]);
                 kputw(line->backward_length - line->loc[BLOCK_START][i] + 1, &temp[0]);
-            } else if ( line->loc[BLOCK_START][i] >= line->reference_length - line->forward_length ) {
+            } else if ( line->loc[BLOCK_START][i] > line->reference_length - line->forward_length ) {
                 kputc('*', &temp[0]);
                 kputw(line->loc[BLOCK_START][i] - (line->reference_length - line->forward_length), &temp[0]);
             } else {
                 kputw(line->loc[BLOCK_START][i] - line->backward_length, &temp[0]);
             }
 
-            if ( line->loc[BLOCK_END][i] <= line->backward_length ) {
+            if ( line->loc[BLOCK_END][i] < line->backward_length ) {
                 kputc('-', &temp[1]);
                 kputw(line->backward_length - line->loc[BLOCK_END][i] + 1, &temp[1]);
-            } else if ( line->loc[BLOCK_END][i] >= line->reference_length - line->forward_length ) {
+            } else if ( line->loc[BLOCK_END][i] > line->reference_length - line->forward_length ) {
                 kputc('*', &temp[1]);
                 kputw(line->loc[BLOCK_END][i] - (line->reference_length - line->forward_length), &temp[1]);
             } else {
@@ -722,6 +727,8 @@ struct genepred_line *genepred_retrieve_gene(struct genepred_spec *spec, const c
     clear_genepred_line(&node);
     if ( string.m )
         free(string.s);
+    if ( head == NULL )
+        return NULL;
     return head;
 }
 struct genepred_line *genepred_retrieve_trans(struct genepred_spec *spec, const char *name)
@@ -731,10 +738,9 @@ struct genepred_line *genepred_retrieve_trans(struct genepred_spec *spec, const 
     struct genepred_line *temp = NULL;
     struct genepred_line node;
     memset(&node, 0, sizeof(node));
-
     char *ss = (char*)name;
     int check_version = 0;
-    for ( ; ss && *ss; ss++ ) {
+    for ( ; ss != NULL && *ss; ss++ ) {
         if ( *ss == '.' ) {
             check_version = 1;
             break;
@@ -904,8 +910,11 @@ int parse_args(int argc, char **argv)
 
 void retrieve_bed()
 {
-    if ( args.noheader == 0 )
-        puts(generate_dbref_header());
+    if ( args.noheader == 0 ) {
+        char *header = generate_dbref_header();
+        puts(header);
+        free(header);
+    }
     if ( args.fast ) {
         struct genepred_line *node = NULL;
         node = genepred_retrieve_gene(args.spec, args.fast);

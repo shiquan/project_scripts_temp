@@ -76,23 +76,29 @@ static int convert_loc2position(struct genepred_line *line, int location, int of
         
         if ( location > line->loc[BLOCK_END][i])
             return 0;
-        if ( offset != 0 ) {
-            if ( line->exons[BLOCK_START][i] != location && line->exons[BLOCK_END][i] != location ) {
-                error("Inconsist between offset and exon edge. exon location : %d, offset: %d.", location, offset);
-            }
+        if ( location == line->loc[BLOCK_START][i] )
+            return line->exons[BLOCK_START][i] + offset;
+        if ( location == line->loc[BLOCK_END][i] )
+            return line->exons[BLOCK_END][i] + offset;
+        
+        if ( offset != 0 && line->exons[BLOCK_START][i] != location && line->exons[BLOCK_END][i] != location ) {
+            error("Inconsist between offset and exon edge. exon location : %d, offset: %d.", location, offset);
         }
-        return line->exons[BLOCK_START][i] + location - line->loc[BLOCK_START][i] + offset;
+        return line->exons[BLOCK_START][i] + location - line->loc[BLOCK_START][i];        
     } else {
         for ( i = 0; i < line->exon_count; ++i ) {
             if ( location >= line->loc[BLOCK_END][i] && location <= line->loc[BLOCK_START][i])
                 break;            
         }
-        if ( offset != 0 ) {
-            if ( line->exons[BLOCK_START][i] != location && line->exons[BLOCK_END][i] != location ) {
-                error("Inconsist between offset and exon edge. exon location : %d, offset: %d.", location, offset);
-            }
+        if ( location == line->loc[BLOCK_START][i] )
+            return line->exons[BLOCK_START][i] + offset;
+        if ( location == line->loc[BLOCK_END][i] )
+            return line->exons[BLOCK_END][i] + offset;
+
+        if ( offset != 0 && line->exons[BLOCK_START][i] != location && line->exons[BLOCK_END][i] != location ) {             
+            error("Inconsist between offset and exon edge. exon location : %d, offset: %d.", location, offset);           
         }
-        return line->exons[BLOCK_START][i] + line->loc[BLOCK_START][i] - location + offset;                              
+        return line->exons[BLOCK_START][i] + line->loc[BLOCK_START][i] - location;
     }
     return 0;
 }
@@ -114,7 +120,7 @@ static int parse_position(char *ss, char *se, struct genepred_line *line)
         pos_type = func_region_utr5;
         ++s1;
     }
-    // For 
+    
     int i;
     for ( s2 = s1, i = 0; *s2 >= 48 && *s2 <= 57; ++s2, ++i );
     position = str2int_l(s1, i);        
@@ -129,9 +135,12 @@ static int parse_position(char *ss, char *se, struct genepred_line *line)
 
     // Convert functional location to gene location.
     if ( pos_type == func_region_cds ) {
-        position += line->forward_length;
-        if ( line->strand == '-' )
+        if ( line->strand == '+' ) {
+            position += line->forward_length;
+        } else {
+            position += line->backward_length;
             position = line->reference_length - position + 1;
+        }
     } else if ( pos_type == func_region_utr5 ) {
         if ( line->strand == '+' ) {
             position = line->forward_length - position + 1;
@@ -191,6 +200,19 @@ int parse_hgvs_name(const char *name)
     int i;
     while ( safe_lock && *safe_lock )
         safe_lock++;
+
+    // Keep the safe_lock always point to the last unit.
+    --safe_lock;
+
+    // Eliminate the quotes.
+    while ( *ss == '"' && *safe_lock == '"' ) {
+        ++ss;
+        --safe_lock;
+    }
+    while ( *ss == '\'' && *safe_lock == '\'') {
+        ++ss;
+        --safe_lock;
+    }
     
     for ( ; se != safe_lock && *se != ':'; ++se );    
     for ( i = 0; *se1 != '(' && se1 != se; ++se1, ++i);
@@ -228,6 +250,8 @@ int parse_hgvs_name(const char *name)
         } else {
             error("Genome position not readable. %s, %d.", se1, i);
         }
+
+        // If end position is specified.
         if ( se[0] == '_') {
             se1 = ++se;
             for ( i = 0; se[0] == '?' || se[0] == '*' || se[0] == '-' || se[0] == '+' || (se[0] >= 48 && se[0] <= 57); ++se, ++i);
@@ -267,6 +291,7 @@ int parse_hgvs_name(const char *name)
         if ( line->next != NULL ) {
             warnings("Multiple transcript hits. Only random pick one record. %s.", line->name1);
         }
+        
         list_lite_delete(&line, genepred_line_destroy);
     }
 
@@ -322,11 +347,11 @@ int parse_hgvs_name(const char *name)
     }
     return 0;
 }
-// return the exon id, for intergenic return -1.
+// 
 int find_the_block(struct genepred_line *line, int *blk_start, int *blk_end, int pos)
 {
-    *blk_start = -1;
-    *blk_end = -1;
+    *blk_start = 0;
+    *blk_end = 0;
     int i;
     for ( i = 0; i < line->exon_count; ++i ) {
         int start = line->exons[BLOCK_START][i];
@@ -386,7 +411,9 @@ int generate_hgvs_core(struct genepred_line *line, struct hgvs_core *core, int s
     if ( end != start ) {
         find_locate(line, &name->end_pos, &name->end_offset, end);
     }
-    debug_print("reference length : %d, forward length : %d, backward length : %d.", line->reference_length, line->forward_length, line->backward_length);
+    // debug_print("reference length : %d, forward length : %d, backward length : %d.", line->reference_length, line->forward_length, line->backward_length);
+    generate_dbref_database(line);
+    debug_print("%d, %d", line->cdsstart, line->cdsend);
     if ( line->cdsstart == line->cdsend ) {
         core->type.func = func_region_noncoding;
     } else {
@@ -399,7 +426,7 @@ int generate_hgvs_core(struct genepred_line *line, struct hgvs_core *core, int s
                 name->pos = line->backward_length - (line->reference_length - name->pos);
             } else {
                 core->type.func = func_region_cds;
-                name->pos = name->pos - line->backward_length;
+                name->pos = name->pos - line->forward_length;
             }
         } else {
             if ( name->pos <= line->backward_length ) {
@@ -441,7 +468,6 @@ int fill_hgvs_name()
         hgvs_core_clear(&des->a[des->l]);
         if ( generate_hgvs_core(line, &des->a[des->l], des->start, des->end) == 0 )
             des->l++;
-        generate_dbref_database(line);
         struct genepred_line * temp = line;
         line = line->next;
         genepred_line_destroy(temp);
