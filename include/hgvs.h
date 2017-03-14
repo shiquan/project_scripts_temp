@@ -55,7 +55,7 @@ struct hgvs_name {
 };
 struct hgvs_core {
     struct hgvs_name name;
-    struct var_func_type des;
+    struct var_func_type type;
 };
 
 // HGVS nomenclature : 

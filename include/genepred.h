@@ -69,7 +69,7 @@ struct genepred_line {
     // Offsets location on gene.
     int *dna_ref_offsets[2];
     // Transcript locations of each block, coding transcripts consist of UTRs and CDS,
-    // so loc[0,1] is not the edge of coding sequences.
+    // so loc[0,1] is not the edge of coding sequences. Consistant with the strand.
     int *loc[2];    
 };
 
@@ -122,5 +122,5 @@ extern struct genepred_spec *genepred_load_trans(struct genepred_spec *spec, con
 extern struct genepred_line *genepred_retrieve_gene(struct genepred_spec *spec, const char *name);
 extern struct genepred_line *genepred_retrieve_trans(struct genepred_spec *spec, const char *name);
 extern struct genepred_line *genepred_retrieve_region(struct genepred_spec *spec, char *name, int start, int end);
-
+extern void generate_dbref_database(struct genepred_line *line);
 #endif
