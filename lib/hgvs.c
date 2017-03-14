@@ -413,7 +413,7 @@ int generate_hgvs_core(struct genepred_line *line, struct hgvs_core *core, int s
     }
     // debug_print("reference length : %d, forward length : %d, backward length : %d.", line->reference_length, line->forward_length, line->backward_length);
     generate_dbref_database(line);
-    debug_print("%d, %d", line->cdsstart, line->cdsend);
+
     if ( line->cdsstart == line->cdsend ) {
         core->type.func = func_region_noncoding;
     } else {

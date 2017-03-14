@@ -32,6 +32,7 @@ struct var_func_type {
 #define REG_CODING     2
 #define REG_UTR5       4
 #define REG_UTR3       8
+
 struct hgvs_name {
     char *name1; // transcripts name, locus name
     char *name2; // gene name or null 

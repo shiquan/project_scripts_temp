@@ -57,7 +57,6 @@ static inline char *rev_seqs(const char *dna_seqs, unsigned long n)
     return rev;
 }
 
-
 #define C4_Stop 0
 #define C4_Phe  1
 #define C4_Leu  2
