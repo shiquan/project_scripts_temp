@@ -126,6 +126,7 @@ static int parse_position(char *ss, char *se, struct genepred_line *line)
             error("Failed to parse offset. %s.", s1);
         }
     }
+
     // Convert functional location to gene location.
     if ( pos_type == func_region_cds ) {
         position += line->forward_length;
@@ -385,6 +386,7 @@ int generate_hgvs_core(struct genepred_line *line, struct hgvs_core *core, int s
     if ( end != start ) {
         find_locate(line, &name->end_pos, &name->end_offset, end);
     }
+    debug_print("reference length : %d, forward length : %d, backward length : %d.", line->reference_length, line->forward_length, line->backward_length);
     if ( line->cdsstart == line->cdsend ) {
         core->type.func = func_region_noncoding;
     } else {

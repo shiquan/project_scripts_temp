@@ -178,8 +178,6 @@ void clear_genepred_line(struct genepred_line *line)
             if ( line->loc_parsed ) {
                 free(line->loc[0]);
                 free(line->loc[1]);
-                free(line->dna_ref_offsets[0]);
-                free(line->dna_ref_offsets[1]);
             }
         }
     }
@@ -360,7 +358,7 @@ int parse_line(kstring_t *string, struct genepred_line *line)
 }
 int parse_line_locs(struct genepred_line *line)
 {
-    if ( line->loc_parsed )
+    if (line->loc_parsed == 1 )
         error("Double parsed.");
     line->loc_parsed = 1;
     // Calculate the length of function regions, for plus strand, forward_length is the length of UTR5, and
@@ -377,7 +375,7 @@ int parse_line_locs(struct genepred_line *line)
     // Check the transcript type, for noncoding RNA cdsstart == cdsend.
     int is_coding = line->cdsstart == line->cdsend ? 0 : 1;
     for ( i = 0; i < 2; i++ ) {
-        line->dna_ref_offsets[i] = calloc(line->exon_count, sizeof(int));
+        // line->dna_ref_offsets[i] = calloc(line->exon_count, sizeof(int));
         line->loc[i] = calloc(line->exon_count, sizeof(int));
     }
 
@@ -437,114 +435,114 @@ int parse_line_locs(struct genepred_line *line)
         }
     }
 
-    // Calculate the dna_ref_offsets[]
-    int l1, l2;
-    int forward_offset, backward_offset;
-    forward_offset = backward_offset = 0;
-    // Count forward offsets.
-    for ( l1 = 0; forward_length > 0; ) {
-        exon_length = line->exons[BLOCK_END][l1] - line->exons[BLOCK_START][l1] + 1;
-        line->dna_ref_offsets[BLOCK_START][l1] = compact_loc(forward_length, is_strand ? REG_UTR5 : REG_UTR3);
-        // Calculate the ends.
-        if ( forward_length >= exon_length ) {
-            forward_length -= exon_length;
-            line->dna_ref_offsets[BLOCK_END][l1] = compact_loc(forward_length+1, is_strand ? REG_UTR5 : REG_UTR3);
-            // If the exon is all UTRs, continue until meet cds region.
-            ++l1;
-            continue;
-        }
-        // If meet cds region in this exon.
-        if ( is_strand ) {
-            forward_length = exon_length - forward_length;
-            // If one exon within cds included.
-            if ( forward_offset > read_length ) {
-                line->dna_ref_offsets[BLOCK_END][l1] = compact_loc(forward_offset - read_length, REG_UTR3);
-            } else {
-                line->dna_ref_offsets[BLOCK_END][l1] = compact_loc(forward_offset, REG_CODING);
-            }
-        } else {
-            // For minus strand, cds count from backword.
-            forward_offset = read_length + forward_length - exon_length + 1;
-            // If one exon within cds included.
-            if ( forward_offset < 0 ) {
-                forward_offset += backward_length;
-                line->dna_ref_offsets[BLOCK_END][l1] = compact_loc(forward_offset, REG_UTR5);
-            } else {
-                line->dna_ref_offsets[BLOCK_END][l1] = compact_loc(forward_offset, REG_CODING);
-            }
-        }
-        // Finish forward read.
-        forward_length = 0;
-        ++l1;
-        break;
-    }
+    /* // Calculate the dna_ref_offsets[] */
+    /* int l1, l2; */
+    /* int forward_offset, backward_offset; */
+    /* forward_offset = backward_offset = 0; */
+    /* // Count forward offsets. */
+    /* for ( l1 = 0; forward_length > 0; ) { */
+    /*     exon_length = line->exons[BLOCK_END][l1] - line->exons[BLOCK_START][l1] + 1; */
+    /*     line->dna_ref_offsets[BLOCK_START][l1] = compact_loc(forward_length, is_strand ? REG_UTR5 : REG_UTR3); */
+    /*     // Calculate the ends. */
+    /*     if ( forward_length >= exon_length ) { */
+    /*         forward_length -= exon_length; */
+    /*         line->dna_ref_offsets[BLOCK_END][l1] = compact_loc(forward_length+1, is_strand ? REG_UTR5 : REG_UTR3); */
+    /*         // If the exon is all UTRs, continue until meet cds region. */
+    /*         ++l1; */
+    /*         continue; */
+    /*     } */
+    /*     // If meet cds region in this exon. */
+    /*     if ( is_strand ) { */
+    /*         forward_length = exon_length - forward_length; */
+    /*         // If one exon within cds included. */
+    /*         if ( forward_offset > read_length ) { */
+    /*             line->dna_ref_offsets[BLOCK_END][l1] = compact_loc(forward_offset - read_length, REG_UTR3); */
+    /*         } else { */
+    /*             line->dna_ref_offsets[BLOCK_END][l1] = compact_loc(forward_offset, REG_CODING); */
+    /*         } */
+    /*     } else { */
+    /*         // For minus strand, cds count from backword. */
+    /*         forward_offset = read_length + forward_length - exon_length + 1; */
+    /*         // If one exon within cds included. */
+    /*         if ( forward_offset < 0 ) { */
+    /*             forward_offset += backward_length; */
+    /*             line->dna_ref_offsets[BLOCK_END][l1] = compact_loc(forward_offset, REG_UTR5); */
+    /*         } else { */
+    /*             line->dna_ref_offsets[BLOCK_END][l1] = compact_loc(forward_offset, REG_CODING); */
+    /*         } */
+    /*     } */
+    /*     // Finish forward read. */
+    /*     forward_length = 0; */
+    /*     ++l1; */
+    /*     break; */
+    /* } */
     
-    // Count backward offsets.
-    for ( l2 = line->exon_count -1;  backward_length > 0; ) {
-        exon_length = line->exons[BLOCK_END][l2] - line->exons[BLOCK_START][l2] + 1;
-        // Set the end edge.
-        line->dna_ref_offsets[BLOCK_END][l2] = compact_loc(backward_length, is_strand ? REG_UTR3 : REG_UTR5);
+    /* // Count backward offsets. */
+    /* for ( l2 = line->exon_count -1;  backward_length > 0; ) { */
+    /*     exon_length = line->exons[BLOCK_END][l2] - line->exons[BLOCK_START][l2] + 1; */
+    /*     // Set the end edge. */
+    /*     line->dna_ref_offsets[BLOCK_END][l2] = compact_loc(backward_length, is_strand ? REG_UTR3 : REG_UTR5); */
 
-        // Set the start edge.
-        // If the exon all included in UTR.      
-        if ( backward_length >= exon_length ) {
-            backward_length -= exon_length;
-            line->dna_ref_offsets[BLOCK_START][l2] = compact_loc(backward_length + 1, is_strand ? REG_UTR3 : REG_UTR5);
-            --l2;
-            // Continue until meet cds region.
-            continue;
-        }
-        // If meet cds region in this exon.
-        if ( is_strand ) {
-            backward_offset = read_length + backward_length - exon_length;
-            // If all cds included in this exon.
-            if ( backward_offset < 0 ) {
-                backward_offset = -backward_offset;
-                line->dna_ref_offsets[BLOCK_START][l2] = compact_loc(backward_offset, REG_UTR5);
-            } else {
-                line->dna_ref_offsets[BLOCK_START][l2] = compact_loc(backward_offset+1, REG_CODING);
-            }
-        } else {
-            backward_offset = exon_length - backward_length;
-            // If all cds included in this exon.
-            if ( backward_offset > read_length ) {
-                backward_offset -= read_length;
-                line->dna_ref_offsets[BLOCK_START][l2] = compact_loc(backward_offset, REG_UTR5);
-            } else {
-                line->dna_ref_offsets[BLOCK_START][l2] = compact_loc(backward_offset, REG_CODING);
-            }
-        }
-        // Finish the backward read.
-        backward_length = 0;
-        --l2;
-        break;
-    }
-    // Count the inter offsets.
-    if ( is_strand ) {
-        // For coding region, trim the offsets.
-        if ( is_coding && backward_offset )
-            read_length = backward_offset;
+    /*     // Set the start edge. */
+    /*     // If the exon all included in UTR.       */
+    /*     if ( backward_length >= exon_length ) { */
+    /*         backward_length -= exon_length; */
+    /*         line->dna_ref_offsets[BLOCK_START][l2] = compact_loc(backward_length + 1, is_strand ? REG_UTR3 : REG_UTR5); */
+    /*         --l2; */
+    /*         // Continue until meet cds region. */
+    /*         continue; */
+    /*     } */
+    /*     // If meet cds region in this exon. */
+    /*     if ( is_strand ) { */
+    /*         backward_offset = read_length + backward_length - exon_length; */
+    /*         // If all cds included in this exon. */
+    /*         if ( backward_offset < 0 ) { */
+    /*             backward_offset = -backward_offset; */
+    /*             line->dna_ref_offsets[BLOCK_START][l2] = compact_loc(backward_offset, REG_UTR5); */
+    /*         } else { */
+    /*             line->dna_ref_offsets[BLOCK_START][l2] = compact_loc(backward_offset+1, REG_CODING); */
+    /*         } */
+    /*     } else { */
+    /*         backward_offset = exon_length - backward_length; */
+    /*         // If all cds included in this exon. */
+    /*         if ( backward_offset > read_length ) { */
+    /*             backward_offset -= read_length; */
+    /*             line->dna_ref_offsets[BLOCK_START][l2] = compact_loc(backward_offset, REG_UTR5); */
+    /*         } else { */
+    /*             line->dna_ref_offsets[BLOCK_START][l2] = compact_loc(backward_offset, REG_CODING); */
+    /*         } */
+    /*     } */
+    /*     // Finish the backward read. */
+    /*     backward_length = 0; */
+    /*     --l2; */
+    /*     break; */
+    /* } */
+    /* // Count the inter offsets. */
+    /* if ( is_strand ) { */
+    /*     // For coding region, trim the offsets. */
+    /*     if ( is_coding && backward_offset ) */
+    /*         read_length = backward_offset; */
         
-        for ( ; l1 <= l2; l1++ ) {
-            exon_length = line->exons[BLOCK_END][l1] - line->exons[BLOCK_START][l1] + 1;
-            line->dna_ref_offsets[BLOCK_END][l1] = compact_loc(read_length, is_coding ? REG_CODING : REG_NONCODING );
+    /*     for ( ; l1 <= l2; l1++ ) { */
+    /*         exon_length = line->exons[BLOCK_END][l1] - line->exons[BLOCK_START][l1] + 1; */
+    /*         line->dna_ref_offsets[BLOCK_END][l1] = compact_loc(read_length, is_coding ? REG_CODING : REG_NONCODING ); */
             
-            read_length -= exon_length;
+    /*         read_length -= exon_length; */
             
-            line->dna_ref_offsets[BLOCK_START][l1] = compact_loc(read_length+1, is_coding ? REG_CODING : REG_NONCODING);
-        }
-    } else {
-        if ( is_coding && forward_offset )
-            read_length = forward_offset -1;
+    /*         line->dna_ref_offsets[BLOCK_START][l1] = compact_loc(read_length+1, is_coding ? REG_CODING : REG_NONCODING); */
+    /*     } */
+    /* } else { */
+    /*     if ( is_coding && forward_offset ) */
+    /*         read_length = forward_offset -1; */
         
-        for ( ; l2 >= l1; l2-- ) {
-            exon_length = line->exons[BLOCK_END][l2] - line->exons[BLOCK_START][l2] + 1;
-            line->dna_ref_offsets[BLOCK_START][l2] = compact_loc(read_length, is_coding ? REG_CODING : REG_NONCODING);
+    /*     for ( ; l2 >= l1; l2-- ) { */
+    /*         exon_length = line->exons[BLOCK_END][l2] - line->exons[BLOCK_START][l2] + 1; */
+    /*         line->dna_ref_offsets[BLOCK_START][l2] = compact_loc(read_length, is_coding ? REG_CODING : REG_NONCODING); */
 
-            read_length -= exon_length;
-            line->dna_ref_offsets[BLOCK_END][l2] = compact_loc(read_length +1, is_coding ? REG_CODING : REG_NONCODING);
-        }
-    }
+    /*         read_length -= exon_length; */
+    /*         line->dna_ref_offsets[BLOCK_END][l2] = compact_loc(read_length +1, is_coding ? REG_CODING : REG_NONCODING); */
+    /*     } */
+    /* } */
     return 0;
 }
 int read_line(struct genepred_spec *spec, kstring_t *string)
@@ -610,13 +608,11 @@ struct genepred_line *genepred_line_copy(struct genepred_line *line)
         nl->exons[i] = calloc(line->exon_count, sizeof(int));
         memcpy(nl->exons[i], line->exons[i], sizeof(int) *line->exon_count);
     }
-    if ( line->loc_parsed ) {
-        for ( i = 0; i < 2; ++i ) {
-            nl->dna_ref_offsets[i] = calloc(line->exon_count, sizeof(int));
-            nl->loc[i] = calloc(line->exon_count, sizeof(int));
-            memcpy(nl->dna_ref_offsets[i], line->dna_ref_offsets[i], sizeof(int) *line->exon_count);
-            memcpy(nl->loc[i], line->loc[i], sizeof(int) *line->exon_count);
-        }
+    for ( i = 0; i < 2; ++i ) {
+        // nl->dna_ref_offsets[i] = calloc(line->exon_count, sizeof(int));
+        nl->loc[i] = calloc(line->exon_count, sizeof(int));
+        // memcpy(nl->dna_ref_offsets[i], line->dna_ref_offsets[i], sizeof(int) *line->exon_count);
+        memcpy(nl->loc[i], line->loc[i], sizeof(int) *line->exon_count);
     }
     return nl;
 }
@@ -632,34 +628,53 @@ void generate_dbref_database(struct genepred_line *line)
     kstring_t temp[2] = { KSTRING_INIT, KSTRING_INIT };
     int types[2];
     for ( i = 0; i < line->exon_count; ++i ) {
-        temp[0].l = temp[1].l = 0;
-    	types[0] = line->dna_ref_offsets[BLOCK_START][i] & REG_MASK;
-    	types[1] = line->dna_ref_offsets[BLOCK_END][i] & REG_MASK;
-    	int j;
-	// [start, end] 
-    	for ( j = 0; j < 2; ++j ) {
-    	    kstring_t *temp1 = &temp[j];
-    	    int t = types[j];
-    	    switch ( t ) {
-    		case REG_UTR5:
-    		    kputc('-', temp1);
-    		    break;
-    		case REG_UTR3:
-    		    kputc('*', temp1);
-    		    break;
-    		case REG_CODING:
-    		    kputs("c.", temp1);
-    		    break;
-    		case REG_NONCODING:
-    		    kputs("n.", temp1);
-    		    break;
-    		default:
-    		    error("Unknown type : ex%d %d %d", i+1, j, t);
-    	    }
-    	}
-    	kputw((line->dna_ref_offsets[BLOCK_START][i]>>TYPEBITS), &temp[0]);
-    	kputw((line->dna_ref_offsets[BLOCK_END][i]>>TYPEBITS), &temp[1]);
-        int exon_id = line->strand == '+' ? i + 1 : line->exon_count -i;
+        temp[0].l = temp[1].l = 0;        
+        int exon_id;
+        if ( line->strand == '+' ) {
+            exon_id = i + 1;
+            if ( line->loc[BLOCK_START][i] <= line->forward_length ) {
+                kputc('-', &temp[0]);
+                kputw(line->forward_length - line->loc[BLOCK_START][i] + 1, &temp[0]);
+            } else if ( line->loc[BLOCK_START][i] >= line->reference_length - line->backward_length ) {
+                kputc('*', &temp[0]);
+                kputw(line->loc[BLOCK_START][i] - (line->reference_length - line->backward_length), &temp[0]);
+            } else {
+                kputw(line->loc[BLOCK_START][i] - line->forward_length, &temp[0]);
+            }
+
+            if ( line->loc[BLOCK_END][i] <= line->forward_length ) {
+                kputc('-', &temp[1]);
+                kputw(line->forward_length - line->loc[BLOCK_END][i] + 1, &temp[1]);
+            } else if ( line->loc[BLOCK_END][i] >= line->reference_length - line->backward_length ) {
+                kputc('*', &temp[1]);
+                kputw(line->loc[BLOCK_END][i] - (line->reference_length - line->backward_length), &temp[1]);
+            } else {
+                kputw(line->loc[BLOCK_END][i] - line->forward_length, &temp[1]);
+            }            
+        } else {
+            exon_id = line->exon_count -i;
+
+            if ( line->loc[BLOCK_START][i] <= line->backward_length ) {
+                kputc('-', &temp[0]);
+                kputw(line->backward_length - line->loc[BLOCK_START][i] + 1, &temp[0]);
+            } else if ( line->loc[BLOCK_START][i] >= line->reference_length - line->forward_length ) {
+                kputc('*', &temp[0]);
+                kputw(line->loc[BLOCK_START][i] - (line->reference_length - line->forward_length), &temp[0]);
+            } else {
+                kputw(line->loc[BLOCK_START][i] - line->backward_length, &temp[0]);
+            }
+
+            if ( line->loc[BLOCK_END][i] <= line->backward_length ) {
+                kputc('-', &temp[1]);
+                kputw(line->backward_length - line->loc[BLOCK_END][i] + 1, &temp[1]);
+            } else if ( line->loc[BLOCK_END][i] >= line->reference_length - line->forward_length ) {
+                kputc('*', &temp[1]);
+                kputw(line->loc[BLOCK_END][i] - (line->reference_length - line->forward_length), &temp[1]);
+            } else {
+                kputw(line->loc[BLOCK_END][i] - line->backward_length, &temp[1]);
+            }            
+
+        }
 	// format: CHROM,START,END,STRAND, GENE, TRANSCRIPT, EXON, START_LOC, END_LOC
         fprintf(stdout, "%s\t%d\t%d\t%c\t%s\t%s\tEX%d\t%d\t%d\t%s\t%s\n",
                 line->chrom,  // chromosome
@@ -673,7 +688,7 @@ void generate_dbref_database(struct genepred_line *line)
                 read_end(line->loc, i),
                 temp[0].s,
                 temp[1].s);
-        temp[0].l = temp[1].l = 0;
+
     }
     free(temp[0].s);
     free(temp[1].s);

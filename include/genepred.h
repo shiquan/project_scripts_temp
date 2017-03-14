@@ -20,16 +20,16 @@
 // offset 4:  is_utr3
 // 
 
-#define REG_NONCODING  1
-#define REG_CODING     2
-#define REG_UTR5       4
-#define REG_UTR3       8
-#define REG_MASK       0xF
-#define TYPEBITS       4
+/* #define REG_NONCODING  1 */
+/* #define REG_CODING     2 */
+/* #define REG_UTR5       4 */
+/* #define REG_UTR3       8 */
+/* #define REG_MASK       0xF */
+/* #define TYPEBITS       4 */
 
-#define read_type(a) ((a) & REG_MASK)
-#define read_loc(a)  ((a) >> TYPEBITS)
-#define compact_loc(a, t) ((a)<<TYPEBITS | ((t) & REG_MASK))
+/* #define read_type(a) ((a) & REG_MASK) */
+/* #define read_loc(a)  ((a) >> TYPEBITS) */
+/* #define compact_loc(a, t) ((a)<<TYPEBITS | ((t) & REG_MASK)) */
 
 #define BLOCK_START 0
 #define BLOCK_END   1
@@ -67,7 +67,7 @@ struct genepred_line {
     int *exons[2];
     int loc_parsed;
     // Offsets location on gene.
-    int *dna_ref_offsets[2];
+    // int *dna_ref_offsets[2];
     // Transcript locations of each block, coding transcripts consist of UTRs and CDS,
     // so loc[0,1] is not the edge of coding sequences. Consistant with the strand.
     int *loc[2];    
