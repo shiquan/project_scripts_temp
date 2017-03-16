@@ -56,8 +56,8 @@ struct genepred_line {
     // strand the forward and backward could be UTR5' or UTR3'; and most importantly,
     // for noncoding transcript, no UTRs, so the forward and backward length should
     // always be 0.
-    int forward_length;
-    int backward_length;
+    int utr5_length;
+    int utr3_length;
 
     // Length of this transcript.
     int reference_length;

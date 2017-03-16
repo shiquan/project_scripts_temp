@@ -45,6 +45,8 @@ static inline uint8_t seq2code4(uint8_t seq)
     return seq2num_table[seq];
 }
 
+typedef char * (*func_dup_seq)(const char *, unsigned long );
+
 static inline char *rev_seqs(const char *dna_seqs, unsigned long n)
 {
     if ( n == 0 )
@@ -124,12 +126,10 @@ enum var_type {
     var_is_utr5,
     var_is_utr3,
     var_is_synonymous,
-    // var_is_nonsynonymous,
     var_is_missense,
-    var_is_nonsense,
+    var_is_nonsense, // stop gain
     var_is_inframe_insertion,
     var_is_inframe_deletion,
-    // var_is_stop_gained,
     var_is_frameshift,
     var_is_stop_lost,
     var_is_stop_retained,
@@ -149,12 +149,10 @@ static inline const char *var_type_string(enum var_type type)
         "utr5",
         "utr3",
         "synonymous",
-        // "nonsynonymous",
         "missense",
         "nonsense",
         "inframe insertion",
         "inframe deletion",
-        "stop gained",
         "frameshift",
         "stop lost",
         "stop retained",

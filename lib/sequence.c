@@ -1,4 +1,4 @@
-x#include "utils.h"
+#include "utils.h"
 #include <string.h>
 #include "htslib/hts.h"
 #include "htslib/faidx.h"

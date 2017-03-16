@@ -135,28 +135,88 @@ static int parse_position(char *ss, char *se, struct genepred_line *line)
 
     // Convert functional location to gene location.
     if ( pos_type == func_region_cds ) {
-        if ( line->strand == '+' ) {
-            position += line->forward_length;
-        } else {
-            position += line->backward_length;
-            position = line->reference_length - position + 1;
-        }
+        position += line->utr5_length;
     } else if ( pos_type == func_region_utr5 ) {
-        if ( line->strand == '+' ) {
-            position = line->forward_length - position + 1;
-        } else {
-            position = line->reference_length - ( line->backward_length - position + 1 ) + 1;
-        }
+        position = line->utr5_length - position + 1;
     } else if ( pos_type == func_region_utr3 ) {
-        if ( line->strand == '+' ) {                    
-            position = line->reference_length - (line->backward_length - position + 1 ) + 1;
-        } else {
-            position = line->reference_length - (line->forward_length - position + 1 ) + 1;                    
-        }
+        position = line->reference_length - line->utr3_length + position;    
     } else {
         error("Impossible situation.");
     }
     return convert_loc2position(line, position, offset);
+}
+int is_nucletide(char *ss)
+{
+    if ( ss == NULL )
+        return 1;
+
+    if ( *ss == 'A' || *ss == 'a' || *ss == 'C' || *ss == 'c' || *ss == 'G' || *ss == 'g' || *ss == 'T' || *ss == 't' )
+        return 0;
+
+    return 1;
+}
+// Here only support several universal HGVS styles.
+// simple convert style:  [ACGT]n>[ACGT]n
+// deletion style:       del[ACGT]n
+// insertion style:      ins[ACGT]n
+// duplicate style:      dup[ACGT]n
+// Do NOT support other complex styles, like inv, con, etc.
+int parse_var(char *ss, char *se, int strand, int *ref_length, char **ref, int *alt_length, char **alt, enum hgvs_variant_type *type)
+{
+    char *s1;
+    char *s2;
+
+    s1 = ss;
+    s2 = ss;
+    
+    if ( ss == NULL || strlen(ss) < 3 )
+        return 1;
+
+    func_dup_seq func = strand == '+' ? strndup : rev_seqs;
+
+    *type = var_type_ref;
+    
+    int i;
+    if ( s1[0] == 'd' && s1[1] == 'e' && s1[2] == 'l' ) {
+        s1 += 3;
+        s2 = s1;
+        for ( i = 0 ; s1 <= se && is_nucletide(s1) == 0; ++s1, ++i );
+        *alt_length = 0;
+        *alt = NULL;
+        *ref_length = i;
+        *ref = func(s2, i);
+        *type = var_type_del;
+    } else if ( (s1[0] == 'i' && s1[1] == 'n' && s1[2] == 's') || (s1[0] == 'd' && s1[1] == 'u' && s1[2] == 'p') ) {
+        s1 += 3;
+        s2 = s1;
+        for ( i = 0 ; s1 <= se && is_nucletide(s1) == 0; ++s1, ++i );
+        *ref_length = 0;
+        *ref = NULL;
+        *alt_length = i;
+        *alt = func(s2, i);
+        *type = var_type_ins;
+    } else {
+        s2 = s1;
+        for ( i = 0 ; s1 <= se && is_nucletide(s1) == 0; ++s1, ++i );        
+        *ref_length = i;
+        *ref = func(s2, i);
+        if ( *s1 == '>' ) {
+            ++s1;
+            s2 = s1;
+            for ( i = 0 ; s1 <= se && is_nucletide(s1) == 0; ++s1, ++i );
+            *alt_length = i;
+            *alt = func(s2, i);
+        } else {
+            return 1;
+        }        
+
+        if ( *alt_length == 1 && *ref_length == 1 ) {
+            *type = var_type_snp;
+        } else {
+            *type = var_type_delins;
+        }
+    }
+    return 0;
 }
 // Standard HGVS name should be NM_0001.2:c.123A>G; tolerant format could be NM_0001:c.123A>G (no version number);
 // Check string format could be parsed and convert cds position to genome position.
@@ -242,6 +302,7 @@ int parse_hgvs_name(const char *name)
     if ( se == se1 )
         error("No position found.");
 
+    char strand = '+';
     if ( type == name_is_chromosome ) {
         des->chrom = strdup(string.s);
         // For genome locations, only number is accept.
@@ -264,8 +325,7 @@ int parse_hgvs_name(const char *name)
             }            
         } else {
             des->end = des->start;
-        }
-        
+        }        
     } else {
         // Here only retrieve one record for each transcript. For some reasons, like alternative locus, one transcript
         // may align to several genome regions, that usually mislead researchers one gene will be expressed by different
@@ -276,6 +336,7 @@ int parse_hgvs_name(const char *name)
         parse_line_locs(line);        
         des->start = parse_position(se1, se, line);
         des->chrom = strdup(line->chrom);
+        strand = line->strand;
         // Check the end position.    
         if ( se[0] == '_') {
             se1 = ++se;
@@ -290,61 +351,15 @@ int parse_hgvs_name(const char *name)
 
         if ( line->next != NULL ) {
             warnings("Multiple transcript hits. Only random pick one record. %s.", line->name1);
-        }
-        
+        }        
         list_lite_delete(&line, genepred_line_destroy);
     }
 
-    // Check the variant type.
-    for ( se1 = se, i = 0; *se == 'A' || *se == 'a' || *se == 'C' || *se == 'c' || *se == 'G' || *se == 'g' || *se == 'T' || *se == 't'; ++se, ++i);
+    for ( se1 = se; se != safe_lock && *se != '('; ++se);
     
-    // Deletion, insertion
-    if ( se == se1 ) {        
-        if ( se[0] == 'd' && se[1] == 'e' && se[2] == 'l' ) {
-            des->alt_length = 0;
-            des->alt = 0;
-            des->ref_length = des->end - des->start + 1;
-            // Ref sequence will be allocated.
-            se += 3;
-            for ( se1 = se, i = 0; *se == 'A' || *se == 'a' || *se == 'C' || *se == 'c' || *se == 'G' || *se == 'g' || *se == 'T' || *se == 't'; ++se, ++i);
-            if ( i > 0 ) {
-                if ( i != des->ref_length) {
-                    error("Inconsistand deletion length. %s.", ss);
-                }
-                des->ref = strndup(se1, i);
-            }
-        } else if ( se[0] == 'i' && se[1] == 'n' && se[2] == 's' ) {
-            des->ref_length = 0;
-            des->ref = 0;
-            se += 3;
-            for ( se1 = se, i = 0; *se == 'A' || *se == 'a' || *se == 'C' || *se == 'c' || *se == 'G' || *se == 'g' || *se == 'T' || *se == 't'; ++se, ++i);
-            if ( i > 0 ) {
-                des->alt_length = i;
-                des->alt= strndup(se1, i);
-            } else {
-                des->alt_length = 0;
-                des->alt = 0;
-            }            
-        } else {
-            error("Failed to parse the variant type. %s.", se);
-        }
-    } else {
-        des->ref_length = i;
-        des->ref = strndup(se1, i);
-        if ( des->end != 0 && des->start + i -1 != des->end ) {
-            error("Inconsistant position and sequences. %s.", ss);
-        } else {
-            des->end = des->start + i - 1;
-        }
-        // Standard variants.
-        if ( *se == '>' ) {
-            for ( se1 = ++se, i = 0; *se == 'A' || *se == 'a' || *se == 'C' || *se == 'c' || *se == 'G' || *se == 'g' || *se == 'T' || *se == 't'; ++se, ++i);
-            des->alt_length = i;
-            des->alt = strndup(se1, i);
-        } else {
-            error("Failed to parse the variant type. %s.", se);
-        }
-    }
+    if ( parse_var(se1, se, (int)strand, &des->ref_length, &des->ref, &des->alt_length, &des->alt, &des->type) )
+        error("Failed to parse variants. %s.", se1);
+
     return 0;
 }
 // 
@@ -370,7 +385,7 @@ int find_the_block(struct genepred_line *line, int *blk_start, int *blk_end, int
     // Always return 0 ? if out of range return 1??
     return 0;
 }
-int find_locate(struct genepred_line *line, int *pos, int *offset, int start)
+int find_locate(struct genepred_line *line, int *pos, int *offset, int start, int *exon_id)
 {
     int block1 = 0;
     int block2 = 0;
@@ -394,7 +409,74 @@ int find_locate(struct genepred_line *line, int *pos, int *offset, int start)
             *offset = line->strand == '+' ? upstream : -upstream;
         }        
     }
+    *exon_id = block1 + 1;
     return 0;
+}
+enum var_type check_vartype(struct genepred_line *line, char *name, int pos, int offset, int ref_length, char *ref, int alt_length, char *alt)
+{
+    if ( offset != 0 ) {        
+        if ( offset < SPLIT_RANGE && name->offset > -SPLIT_RANGE ) {
+            return var_is_splice_site;
+        }
+        return var_is_intron;
+    }
+    
+    int i;
+
+    // Check if noncoding transcript.
+    if ( line->cdsstart == line->cdsend ) {
+        if ( line->strand == '+') {
+            for ( i = 0; i < line->exon_count; ++i ) {
+                if ( pos >= line->loc[BLOCK_START][i] && pos <= line->loc[BLOCK_END][i]) {
+                    if ( pos < line->loc[BLOCK_START][i] + SPLIT_RANGE || pos > line->loc[BLOCK_END][i] - SPLIT_RANGE ) {
+                        return var_is_splice_site;
+                    } else {
+                        return var_is_noncoding;
+                    }
+                }
+            }
+        } else {
+            for ( i = 0; i < line->exon_count; ++i ) {
+                if ( pos <= line->loc[BLOCK_START][i] && pos >= line->loc[BLOCK_END][i]) {
+                    if ( pos < line->loc[BLOCK_END][i] + SPLIT_RANGE || pos > line->loc[BLOCK_START][i] -SPLIT_RANGE ) {
+                        return var_is_splice_site;
+                    } else {
+                        return var_is_noncoding;
+                    }
+                }
+            }
+        }
+        return var_is_noncoding;
+    }
+
+    // Check if utr regions.
+    if ( pos <= line->utr5_length -SPLIT_RANGE ) {
+        return var_is_utr5;
+    }
+
+    if ( pos <= line->utr5_length ) {
+        return var_is_splice_site;
+    }
+
+    int cds_pos = line->reference_length - line->utr3_length;
+
+    if ( pos >= cds_pos + SPLIT_RANGE ) {
+        return var_is_utr3;
+    }
+
+    if ( pos >= cds_pos ) {
+        return var_is_splice_site;
+    }
+
+    
+    // Check if cds regions.
+    cds_pos = pos - line->utr5_length;
+    // 0 based.
+    int start = cds/3 + line->utr5_length -1 ;
+    int l = 0;
+    char *seq = faidx_fetch_seq(spec.data->fai, name, start_pos, start_pos + 1000, &l);
+    
+    return var_is_unknown;
 }
 // return 0 on success, 1 on out of range.
 int generate_hgvs_core(struct genepred_line *line, struct hgvs_core *core, int start, int end)
@@ -402,47 +484,49 @@ int generate_hgvs_core(struct genepred_line *line, struct hgvs_core *core, int s
     int i;
     int blk_start = 0, blk_end = 0;
     struct hgvs_name *name = &core->name;
+    struct var_func_type *type = &core->type;
+    
     if ( line->loc_parsed == 0 )
         parse_line_locs(line);
 
-    if ( find_locate(line, &name->pos, &name->offset, start) )
+    int exon_id1 = 0;
+    int exon_id2 = 0;
+    if ( find_locate(line, &name->pos, &name->offset, start, &exon_id1) )
         return 1;
-    // Locate end. For most cases variants are snps, start == end.
-    if ( end != start ) {
-        find_locate(line, &name->end_pos, &name->end_offset, end);
-    }
-    // debug_print("reference length : %d, forward length : %d, backward length : %d.", line->reference_length, line->forward_length, line->backward_length);
-    generate_dbref_database(line);
 
+    // Check the exon/intron count.
+    type->count = exon_id1;
+    
+    // Check the vartype.
+    type->vartype = check_vartype(line, name->pos, name->offset, ... );
+    
+    
     if ( line->cdsstart == line->cdsend ) {
-        core->type.func = func_region_noncoding;
+        type->func = func_region_noncoding;
     } else {
-        if ( line->strand == '+' ) {
-            if ( name->pos <= line->forward_length ) {
-                core->type.func = func_region_utr5;
-                name->pos = line->forward_length - name->pos + 1;
-            } else if ( line->reference_length - name->pos <= line->backward_length ) {
-                core->type.func = func_region_utr3;
-                name->pos = line->backward_length - (line->reference_length - name->pos);
-            } else {
-                core->type.func = func_region_cds;
-                name->pos = name->pos - line->forward_length;
-            }
+        if ( name->pos <= line->utr5_length ) {
+            type->func = func_region_utr5;
+            name->pos = line->utr5_length - name->pos + 1;
+        } else if ( line->reference_length - name->pos <= line->utr3_length ) {
+            type->func = func_region_utr3;
+            name->pos = line->utr3_length - (line->reference_length - name->pos);
         } else {
-            if ( name->pos <= line->backward_length ) {
-                core->type.func = func_region_utr5;
-                name->pos = line->forward_length - name->pos + 1;                
-            } else if ( line->reference_length - name->pos <= line->forward_length ) {
-                core->type.func = func_region_utr3;
-                name->pos = line->backward_length - (line->reference_length - name->pos);                
-            } else {
-                core->type.func = func_region_cds;
-                name->pos = name->pos - line->backward_length;
-            }
+            type->func = func_region_cds;
+            name->pos = name->pos - line->utr5_length;
         }
     }
+    
+    // Locate end. For most cases variants are snps, start == end.
+    if ( end != start ) {
+        find_locate(line, &name->end_pos, &name->end_offset, end, &exon_id2);
+        if ( exon_id1 != exon_id2 ) {
+            type->func = func_region_large;
+        }
+    }
+
     name->name1 = strdup(line->name1);
     name->name2 = strdup(line->name2);
+    
     return 0;
 }
 // Fill all possible HGVS names for this variant.
@@ -468,6 +552,7 @@ int fill_hgvs_name()
         hgvs_core_clear(&des->a[des->l]);
         if ( generate_hgvs_core(line, &des->a[des->l], des->start, des->end) == 0 )
             des->l++;
+        
         struct genepred_line * temp = line;
         line = line->next;
         genepred_line_destroy(temp);
@@ -475,33 +560,73 @@ int fill_hgvs_name()
     return 0;
 }
 
-int print_hgvs_core()
+int print_hgvs_summary()
 {
     int i;
     struct hgvs_des *des = &spec.des;
-    
+    kstring_t string = { 0, 0, 0 };
+    ksprintf(&string, "\n%12s\t%10s\t%10s\t%5s\t%5s\n","#Chromosome", "Start", "End", "Ref", "Alt");
+    ksprintf(&string, "%12s\t%10d\t%10d\t%5s\t%5s\n\n", des->chrom, des->start, des->end, des->ref, des->alt);
+    ksprintf(&string, "%8s\t%15s\t%15s\t%15s\t%5s\t%5s\n", "#Gene","Transcript","cHGVS","pHGVS","ExInt", "VarType");
+             
     for ( i = 0; i < des->l; ++i ) {
         struct hgvs_core *core = &des->a[i];
         if ( core->name.name1 == NULL )
             error("No transcript name found.");
-        printf("%s:", core->name.name1);
+        ksprintf(&string, "%8s\t%15s\t", core->name.name2, core->name.name1);
+
+        kstring_t temp = { 0, 0, 0 };
         if ( core->type.func == func_region_noncoding ) {
-            printf("n.");
+            kputs("n.", &temp);
         } else if ( core->type.func == func_region_cds ) {
-            printf("c.");            
+            kputs("c.", &temp);
         } else if ( core->type.func == func_region_utr5 ) {
-            printf("c.-");
+            kputs("c.-", &temp);
         } else if ( core->type.func == func_region_utr3 ) {
-            printf("c.*");
+            kputs("c.*", &temp);
         }
-        printf("%d", core->name.pos);
+        ksprintf(&temp,"%d", core->name.pos);
         if ( core->name.offset  > 0 ) {
-            printf("+%d", core->name.offset);
+            ksprintf(&temp, "+%d", core->name.offset);
         } else if ( core->name.offset < 0 ) {
-            printf("%d", core->name.offset);
+            ksprintf(&temp, "%d", core->name.offset);
         }
-        printf("\n");
+
+        if ( des->start !=  des->end ) {
+            kputc('_', &temp);
+            if ( core->type.func == func_region_utr5 ) {
+                kputc('-',&temp);
+            } else if ( core->type.func == func_region_utr3 ) {
+                kputc('*',&temp);
+            }
+            ksprintf(&temp, "%d", core->name.pos);
+            if ( core->name.offset  > 0 ) {
+                ksprintf(&temp, "+%d", core->name.offset);
+            } else if ( core->name.offset < 0 ) {
+                ksprintf(&temp, "%d", core->name.offset);
+            }
+        }
+        
+        if ( des->ref_length == 0 ) {
+            if ( des->alt != NULL ) {
+                ksprintf(&temp, "ins%s", des->alt);
+            } else {
+                ksprintf(&temp, "ins%d", des->alt_length);
+            }
+        } else if ( des->alt_length == 0 ) {
+            if ( des->ref != NULL ) {
+                ksprintf(&temp, "del%s", des->ref);
+            } else {
+                ksprintf(&temp, "del%d", des->ref_length);
+            }                
+        } else {
+            ksprintf(&temp, "%s>%s", des->ref, des->alt);                
+        }        
+        ksprintf(&string, "%15s\n", temp.s);
+        free(temp.s);
     }
+    puts(string.s);
+    free(string.s);
     return 0;
 }
 
@@ -555,16 +680,14 @@ int parse_args(int ac, char **av)
     if ( parse_hgvs_name(name) ) {
         error("Failed to parse name string.");
         return 1;
-    }
-    
-    
+    }        
     return 0;
 }
 
 void convert_hgvs()
 {
     fill_hgvs_name();
-    print_hgvs_core();
+    print_hgvs_summary();
 }
 void release_memory()
 {
