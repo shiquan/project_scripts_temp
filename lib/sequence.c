@@ -4,6 +4,27 @@
 #include "htslib/faidx.h"
 #include "sequence.h"
 
+// Return the location of terminal codon on the sequence.
+// Return -1 if no found.
+int check_stop_codon(char *seq, char *p_end )
+{
+    char *ss = seq;
+    char *se = p_end;
+    int i, l;
+    if ( se == NULL ) {
+        for ( se = ss; se != NULL && *se; ++se, ++l );        
+    }
+
+    l /= 3;
+    
+    for ( i = 0; i < l;  ++i) {
+        if ( codon2aminoid(ss) == C4_Stop ) {
+            return i+1;
+        }
+        ss += 3;
+    }
+    return -1;
+}
 // define_var_type return the variant type from the transcript block and variants
 // only account exon region
 // start is 0 based position aligned on the block

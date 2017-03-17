@@ -171,6 +171,19 @@ static inline int check_is_stop(char *codon)
     return codon_matrix[seq2code4(codon[0])][seq2code4(codon[1])][seq2code4(codon[2])] == C4_Stop;
 }
 
+static inline void compl_seq(char *seq, int l)
+{
+    int i;
+    for ( i = 0; i < l/2; i++ ) {
+        char c = revseqarr[seq2code4(seq[i])];
+        seq[i] = revseqarr[seq2code4(seq[l-i-1])];
+        seq[l-i-1] = c;
+    }
+    if ( l & 2 ) {
+        seq[l/2] = revseqarr[seq2code4(seq[l/2])];
+    }
+}
+extern int check_stop_codon(char *seq, char *p_end);
 extern enum var_type check_var_type(char *block, int block_length, int start, char *ref, int ref_length, char *alt, int alt_length );
 
 

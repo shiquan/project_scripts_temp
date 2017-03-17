@@ -47,10 +47,13 @@ struct hgvs_name {
     // 
     // offset 1:  is_noncoding
     // offset 2:  is_coding
-   // offset 3:  is_utr5
+    // offset 3:  is_utr5
     // offset 4:  is_utr3
     int pos;
     int end_pos;
+    // location for function region.
+    int loc;
+    int end_loc;
     
     int offset;
     int end_offset;

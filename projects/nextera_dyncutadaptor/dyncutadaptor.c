@@ -406,7 +406,7 @@ Usage: %s --fastq1 [in1.fq.gz] --fastq2 [in2.fq.gz] \n\
 -fastq2, -r         Fastq file of read2.\n\
 -outfq1, -o         New fastq file of read1.\n\
 -outfq2, -p         New fastq file of read2.\n\
--seed,   -s         Initial length of adaptor.[10]\n\
+-seed,   -s         Initial length of adaptor.[5]\n\
 -slave,  -d         Cut all sequence like adaptor.\n\
 -mis,    -i         Tolerate mismatchs.[1]\n\
 -tail,   -t         Don't cut tail in the last n bp.[3]\n\

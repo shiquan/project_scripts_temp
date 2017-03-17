@@ -243,6 +243,12 @@ int check_hgvs_name(const char *name)
     }
     return 0;
 }
+
+int setter_description(char *name, int pos, int ref_length, char *ref, int alt_length, char *alt)
+{
+    
+}
+
 int parse_hgvs_name(const char *name)
 {
     if ( check_hgvs_name(name) )
@@ -409,77 +415,227 @@ int find_locate(struct genepred_line *line, int *pos, int *offset, int start, in
             *offset = line->strand == '+' ? upstream : -upstream;
         }        
     }
-    *exon_id = block1 + 1;
+    *exon_id = block1;
     return 0;
 }
-enum var_type check_vartype(struct genepred_line *line, char *name, int pos, int offset, int ref_length, char *ref, int alt_length, char *alt)
-{
-    if ( offset != 0 ) {        
-        if ( offset < SPLIT_RANGE && name->offset > -SPLIT_RANGE ) {
-            return var_is_splice_site;
+int check_func_vartype(struct genepred_line *line, int pos, int offset, int ref_length, char *ref, int alt_length, char *alt, struct var_func_type *type)
+{    
+    if ( line->cdsstart == line->cdsend ) {
+        type->func = func_region_noncoding;
+    } else {
+        if ( pos <= line->utr5_length ) {
+            type->func = func_region_utr5;
+            // pos = line->utr5_length - pos + 1;
+        } else if ( line->reference_length - pos <= line->utr3_length ) {
+            type->func = func_region_utr3;
+            // pos = line->utr3_length - (line->reference_length - pos);
+        } else {
+            type->func = func_region_cds;
+            // pos = pos - line->utr5_length;
         }
-        return var_is_intron;
+    }
+
+    // Check the exon or intron id.
+    int i;
+    int cds_pos;
+    type->vartype = var_is_unknown;
+
+#define BRANCH(_type) do {                              \
+        if ( type->vartype == var_is_unknown ) {        \
+            type->vartype = _type;                      \
+        }                                               \
+} while(0)
+
+    if ( line->strand == '+' ) {
+        for ( i = 0; i < line->exon_count; ++i ) {
+            if ( pos >= line->exons[BLOCK_START][i] && pos <= line->exons[BLOCK_END][i] ) {
+                if ( pos < line->exons[BLOCK_START][i] + SPLIT_RANGE || pos > line->exons[BLOCK_END][i] - SPLIT_RANGE) {
+                    type->vartype = var_is_splice_site;
+                }
+                break;
+            }
+        }
+        if ( offset > 0 ) {
+            type->count = i + 1;
+        } else {
+            type->count = i;
+        }
+    } else {
+        for ( i = 0; i < line->exon_count; ++i ) {
+            int j = line->exon_count - i - 1;
+            if ( pos >= line->exons[BLOCK_END][j] && pos <= line->exons[BLOCK_START][j] ) {
+                if ( pos < line->exons[BLOCK_END][j] + SPLIT_RANGE || pos > line->exons[BLOCK_START][j] - SPLIT_RANGE) {
+                    type->vartype = var_is_splice_site;
+                }
+                break;
+            }                
+        }
+        if ( offset > 0 ) {
+            type->count = i + 1;
+        } else {
+            type->count = i;
+        }        
     }
     
-    int i;
-
+    if ( offset != 0 ) {        
+        if ( offset < SPLIT_RANGE && offset > -SPLIT_RANGE ) {
+            type->vartype = var_is_splice_site;
+        } else {
+            type->vartype = var_is_intron;
+        }
+        goto no_amino_code;
+    }
+    
     // Check if noncoding transcript.
     if ( line->cdsstart == line->cdsend ) {
         if ( line->strand == '+') {
             for ( i = 0; i < line->exon_count; ++i ) {
                 if ( pos >= line->loc[BLOCK_START][i] && pos <= line->loc[BLOCK_END][i]) {
                     if ( pos < line->loc[BLOCK_START][i] + SPLIT_RANGE || pos > line->loc[BLOCK_END][i] - SPLIT_RANGE ) {
-                        return var_is_splice_site;
+                        type->vartype = var_is_splice_site;
                     } else {
-                        return var_is_noncoding;
+                        type->vartype = var_is_noncoding;
                     }
+                    goto no_amino_code;
                 }
             }
         } else {
             for ( i = 0; i < line->exon_count; ++i ) {
                 if ( pos <= line->loc[BLOCK_START][i] && pos >= line->loc[BLOCK_END][i]) {
                     if ( pos < line->loc[BLOCK_END][i] + SPLIT_RANGE || pos > line->loc[BLOCK_START][i] -SPLIT_RANGE ) {
-                        return var_is_splice_site;
+                        type->vartype = var_is_splice_site;
                     } else {
-                        return var_is_noncoding;
+                        type->vartype = var_is_noncoding;
                     }
+                    goto no_amino_code;
                 }
             }
         }
-        return var_is_noncoding;
+        type->vartype = var_is_noncoding;
+        goto no_amino_code;
     }
 
     // Check if utr regions.
     if ( pos <= line->utr5_length -SPLIT_RANGE ) {
-        return var_is_utr5;
+        BRANCH(var_is_utr5);
+        goto no_amino_code;
     }
 
     if ( pos <= line->utr5_length ) {
-        return var_is_splice_site;
+        type->vartype = var_is_splice_site;
+        goto no_amino_code;
     }
 
-    int cds_pos = line->reference_length - line->utr3_length;
-
+    cds_pos = line->reference_length - line->utr3_length;
+    
     if ( pos >= cds_pos + SPLIT_RANGE ) {
-        return var_is_utr3;
+        BRANCH(var_is_utr3);
+        goto no_amino_code;
     }
 
     if ( pos >= cds_pos ) {
-        return var_is_splice_site;
+        type->vartype = var_is_splice_site;
+        goto no_amino_code;
     }
 
-    
+
+  amino_code:
     // Check if cds regions.
     cds_pos = pos - line->utr5_length;
     // 0 based.
-    int start = cds/3 + line->utr5_length -1 ;
-    int l = 0;
-    char *seq = faidx_fetch_seq(spec.data->fai, name, start_pos, start_pos + 1000, &l);
+    int start = (cds_pos-1)/3*3 + line->utr5_length;
+    type->loc_amino = (cds_pos-1)/3 + 1;
+    int cod = (cds_pos-1) % 3;
     
-    return var_is_unknown;
+    int l = 0;
+    char *name = line->name1;
+    char *ori_seq = faidx_fetch_seq(spec.data->fai, name, start, start + 1000, &l);
+    
+    if ( ori_seq == NULL || l == 0 )
+        goto failed_check;
+    
+    char *ref_seq = ref == NULL ? NULL : strdup(ref);
+    char *alt_seq = alt == NULL ? NULL : strdup(alt);
+
+    if ( line->strand == '-' ) {        
+        compl_seq(ref_seq, strlen(ref_seq));
+        compl_seq(alt_seq, strlen(alt_seq));
+    }
+    // Check the ref sequence consistant with database or not.        
+    if ( ref_length > 0 && ref != NULL ) {
+        int i;    
+        for ( i = 0; i < ref_length; ++i ) {
+            // debug_print("%d, %d, %d, %s.", line->utr5_length, start, cod, ori_seq);
+            if ( seq2code4(ori_seq[cod+i]) != seq2code4(ref_seq[i]) ) {
+                warnings("Inconsistance nucletide. %c vs %c.", ori_seq[cod+i], ref_seq[i]);
+            }
+        }
+    }
+
+    if ( ref_length == alt_length ) {
+        char codon[4];
+        memcpy(codon, ori_seq, 3);
+        codon[3] = '\0';
+        type->ori_amino = codon2aminoid(codon);
+        if ( ref_length == 1 ) {
+            codon[cod] = *alt;
+        } else {
+            int i;
+            for ( i = cod; i < 3; ++i ) {
+                codon[i] = alt[i-cod];
+            }                           
+        }
+        
+        type->mut_amino = codon2aminoid(codon);
+        if ( type->ori_amino == type->mut_amino ) {
+            if ( type->ori_amino == 0 ) {
+                BRANCH(var_is_stop_retained);
+            } else {
+                BRANCH(var_is_synonymous);
+            }
+        } else {
+            if ( type->ori_amino == 0 ) {
+                type->vartype = var_is_stop_lost;
+            } else if ( type->mut_amino == 0 ) {
+                type->vartype = var_is_nonsense;
+            } else {
+                type->vartype = var_is_missense;
+            }
+        }                
+    } else {
+        // Insertion
+        
+        // Deletion
+
+
+        // Delins
+    }
+
+    if (ref_seq != NULL ) {
+        free(ref_seq);        
+    }
+
+    if ( alt_seq != NULL ) {
+        free(alt_seq);
+    }
+        
+    return 0;
+    
+#undef BRANCH
+    
+  failed_check:
+    type->vartype = var_is_unknown;
+    
+  no_amino_code:
+    type->loc_amino = 0;
+    type->ori_amino = 0;
+    type->mut_amino = 0;
+    type->fs = 0;
+    return 0;
 }
+
 // return 0 on success, 1 on out of range.
-int generate_hgvs_core(struct genepred_line *line, struct hgvs_core *core, int start, int end)
+int generate_hgvs_core(struct genepred_line *line, struct hgvs_core *core, int start, int end, int ref_length, char *ref, int alt_length, char *alt)
 {
     int i;
     int blk_start = 0, blk_end = 0;
@@ -493,28 +649,6 @@ int generate_hgvs_core(struct genepred_line *line, struct hgvs_core *core, int s
     int exon_id2 = 0;
     if ( find_locate(line, &name->pos, &name->offset, start, &exon_id1) )
         return 1;
-
-    // Check the exon/intron count.
-    type->count = exon_id1;
-    
-    // Check the vartype.
-    type->vartype = check_vartype(line, name->pos, name->offset, ... );
-    
-    
-    if ( line->cdsstart == line->cdsend ) {
-        type->func = func_region_noncoding;
-    } else {
-        if ( name->pos <= line->utr5_length ) {
-            type->func = func_region_utr5;
-            name->pos = line->utr5_length - name->pos + 1;
-        } else if ( line->reference_length - name->pos <= line->utr3_length ) {
-            type->func = func_region_utr3;
-            name->pos = line->utr3_length - (line->reference_length - name->pos);
-        } else {
-            type->func = func_region_cds;
-            name->pos = name->pos - line->utr5_length;
-        }
-    }
     
     // Locate end. For most cases variants are snps, start == end.
     if ( end != start ) {
@@ -526,8 +660,27 @@ int generate_hgvs_core(struct genepred_line *line, struct hgvs_core *core, int s
 
     name->name1 = strdup(line->name1);
     name->name2 = strdup(line->name2);
+
+    // Check the vartype.
+    if ( check_func_vartype(line, name->pos, name->offset, ref_length, ref, alt_length, alt, type) )
+        return 1;
+
+    // Update to function location.
+    if ( type->func == func_region_utr5 ) {
+        name->loc = line->utr5_length - name->pos + 1;
+        name->end_loc = line->utr5_length - name->end_pos + 1;
+    } else if ( type->func == func_region_utr3 ) {
+        name->loc = line->utr3_length - ( line->reference_length - name->pos );
+        name->end_loc = line->utr3_length - ( line->reference_length - name->end_pos );            
+    } else if ( type->func == func_region_cds ) {
+        name->loc = name->pos - line->utr5_length;
+        name->end_loc = name->end_pos - line->utr5_length;
+    } else {
+        name->loc = name->pos;
+        name->end_loc = name->end_pos;
+    }
     
-    return 0;
+    return 0; 
 }
 // Fill all possible HGVS names for this variant.
 int fill_hgvs_name()
@@ -550,7 +703,7 @@ int fill_hgvs_name()
         }
 
         hgvs_core_clear(&des->a[des->l]);
-        if ( generate_hgvs_core(line, &des->a[des->l], des->start, des->end) == 0 )
+        if ( generate_hgvs_core(line, &des->a[des->l], des->start, des->end, des->ref_length, des->ref, des->alt_length, des->alt) == 0 )
             des->l++;
         
         struct genepred_line * temp = line;
@@ -567,25 +720,26 @@ int print_hgvs_summary()
     kstring_t string = { 0, 0, 0 };
     ksprintf(&string, "\n%12s\t%10s\t%10s\t%5s\t%5s\n","#Chromosome", "Start", "End", "Ref", "Alt");
     ksprintf(&string, "%12s\t%10d\t%10d\t%5s\t%5s\n\n", des->chrom, des->start, des->end, des->ref, des->alt);
-    ksprintf(&string, "%8s\t%15s\t%15s\t%15s\t%5s\t%5s\n", "#Gene","Transcript","cHGVS","pHGVS","ExInt", "VarType");
+    ksprintf(&string, "%8s\t%15s\t%15s\t%15s\t%10s\t%15s\n", "#Gene","Transcript","cHGVS","pHGVS","ExInt", "VarType");
              
     for ( i = 0; i < des->l; ++i ) {
         struct hgvs_core *core = &des->a[i];
+        struct var_func_type *type = &core->type;
         if ( core->name.name1 == NULL )
             error("No transcript name found.");
         ksprintf(&string, "%8s\t%15s\t", core->name.name2, core->name.name1);
 
         kstring_t temp = { 0, 0, 0 };
-        if ( core->type.func == func_region_noncoding ) {
+        if ( type->func == func_region_noncoding ) {
             kputs("n.", &temp);
-        } else if ( core->type.func == func_region_cds ) {
+        } else if ( type->func == func_region_cds ) {
             kputs("c.", &temp);
-        } else if ( core->type.func == func_region_utr5 ) {
+        } else if ( type->func == func_region_utr5 ) {
             kputs("c.-", &temp);
-        } else if ( core->type.func == func_region_utr3 ) {
+        } else if ( type->func == func_region_utr3 ) {
             kputs("c.*", &temp);
         }
-        ksprintf(&temp,"%d", core->name.pos);
+        ksprintf(&temp,"%d", core->name.loc);
         if ( core->name.offset  > 0 ) {
             ksprintf(&temp, "+%d", core->name.offset);
         } else if ( core->name.offset < 0 ) {
@@ -594,12 +748,12 @@ int print_hgvs_summary()
 
         if ( des->start !=  des->end ) {
             kputc('_', &temp);
-            if ( core->type.func == func_region_utr5 ) {
+            if ( type->func == func_region_utr5 ) {
                 kputc('-',&temp);
-            } else if ( core->type.func == func_region_utr3 ) {
+            } else if ( type->func == func_region_utr3 ) {
                 kputc('*',&temp);
             }
-            ksprintf(&temp, "%d", core->name.pos);
+            ksprintf(&temp, "%d", core->name.end_loc);
             if ( core->name.offset  > 0 ) {
                 ksprintf(&temp, "+%d", core->name.offset);
             } else if ( core->name.offset < 0 ) {
@@ -621,8 +775,23 @@ int print_hgvs_summary()
             }                
         } else {
             ksprintf(&temp, "%s>%s", des->ref, des->alt);                
-        }        
-        ksprintf(&string, "%15s\n", temp.s);
+        }
+        // cHGVS
+        ksprintf(&string, "%15s\t", temp.s);
+        
+        // pHGVS
+        temp.l = 0;
+        if ( type->loc_amino > 0 ) {
+            ksprintf(&temp, "p.%s%d%s", codon_names[type->ori_amino], type->loc_amino, codon_names[type->mut_amino]);
+            ksprintf(&string, "%15s\t", temp.s);
+        } else {
+            ksprintf(&string, "%15s\t", "-");
+        }
+        // Exon id
+        ksprintf(&string, "%10d\t", type->count);
+        // VarType
+        ksprintf(&string, "%15s", var_type_string(type->vartype));
+        kputc('\n', &string);
         free(temp.s);
     }
     puts(string.s);
