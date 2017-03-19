@@ -137,11 +137,12 @@ enum var_type {
     var_is_splice_donor,
     var_is_splice_acceptor,
     var_is_complex,
+    var_is_no_call,
 };
 
 static inline const char *var_type_string(enum var_type type)
 {
-    static const char* vartypes[20] = {
+    static const char* vartypes[21] = {
         "unknown",
         "reference",
         "intron",
@@ -151,15 +152,16 @@ static inline const char *var_type_string(enum var_type type)
         "synonymous",
         "missense",
         "nonsense",
-        "inframe insertion",
-        "inframe deletion",
+        "inframe_insertion",
+        "inframe_deletion",
         "frameshift",
-        "stop lost",
-        "stop retained",
-        "splice site",
-        "splice donor",
-        "splice acceptor",
+        "stop_lost",
+        "stop_retained",
+        "splice_site",
+        "splice_donor",
+        "splice_acceptor",
         "complex",
+        "no call",
         NULL,
     };
     assert(type >= 0);
@@ -179,7 +181,7 @@ static inline void compl_seq(char *seq, int l)
         seq[i] = revseqarr[seq2code4(seq[l-i-1])];
         seq[l-i-1] = c;
     }
-    if ( l & 2 ) {
+    if ( l & 1 ) {
         seq[l/2] = revseqarr[seq2code4(seq[l/2])];
     }
 }

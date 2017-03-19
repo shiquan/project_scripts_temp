@@ -39,7 +39,7 @@ struct hgvs_name {
     char *name2; // gene name or null 
 
     // The gene position format is same with genepred dna reference offset consist of two parts: the offset value
-    // and the function region construct a 32-bits value.
+   // and the function region construct a 32-bits value.
     // coding/nocoding coordinate
     // 32                        4321
     // |_________________________||||
@@ -90,7 +90,7 @@ struct hgvs_core {
 enum hgvs_variant_type {
     var_type_nonref = -1, // for gatk <NONREF> allele
     var_type_ref = 0,
-    var_type_snp,
+    var_type_snp,   
     var_type_del,
     var_type_ins,
     var_type_delins,
@@ -128,5 +128,14 @@ struct hgvs_des {
     int l, m;
     struct hgvs_core *a;
 };
+
+extern int init_hgvs_spec(const char *fname, const char *fasta);
+extern void hgvs_spec_destroy();
+
+// Parse the description name. 
+extern int setter_description(const char *name, int _pos, char *ref, char *alt);
+extern int parse_hgvs_name(const char *name);
+
+extern struct hgvs_des *fill_hgvs_name();
 
 #endif

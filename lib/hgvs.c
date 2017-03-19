@@ -6,6 +6,10 @@
 #include "htslib/kstring.h"
 #include <string.h>
 #include <regex.h>
+#include <ctype.h>
+
+// Avoid overhang point.
+char str_init[2];
 
 struct hgvs_spec {
     struct genepred_spec *data;
@@ -31,9 +35,9 @@ void hgvs_des_clear(struct hgvs_des *des)
     free(des->a);
     if ( des->chrom != NULL )
         free(des->chrom);
-    if ( des->ref != NULL)
+    if ( des->ref_length > 0)
         free(des->ref);
-    if ( des->alt != NULL)
+    if ( des->alt_length > 0)
         free(des->alt);
     memset(des, 0, sizeof(struct hgvs_des));
 }
@@ -105,6 +109,8 @@ static int convert_loc2position(struct genepred_line *line, int location, int of
 // ss point the start of string, se point the end of the convert string.
 static int parse_position(char *ss, char *se, struct genepred_line *line)
 {
+    struct hgvs_des *des = &spec.des;
+    
     // Parse the position string. The possible position may be look like 123, *123, -123, 123+12, 123-12, etc.        
     int position = 0;
     int offset = 0;
@@ -145,7 +151,7 @@ static int parse_position(char *ss, char *se, struct genepred_line *line)
     }
     return convert_loc2position(line, position, offset);
 }
-int is_nucletide(char *ss)
+static int is_nucletide(char *ss)
 {
     if ( ss == NULL )
         return 1;
@@ -161,7 +167,7 @@ int is_nucletide(char *ss)
 // insertion style:      ins[ACGT]n
 // duplicate style:      dup[ACGT]n
 // Do NOT support other complex styles, like inv, con, etc.
-int parse_var(char *ss, char *se, int strand, int *ref_length, char **ref, int *alt_length, char **alt, enum hgvs_variant_type *type)
+static int parse_var(char *ss, char *se, int strand, int *ref_length, char **ref, int *alt_length, char **alt, enum hgvs_variant_type *type)
 {
     char *s1;
     char *s2;
@@ -243,10 +249,118 @@ int check_hgvs_name(const char *name)
     }
     return 0;
 }
-
-int setter_description(char *name, int pos, int ref_length, char *ref, int alt_length, char *alt)
+int setter_description(const char *name, int _pos, char *ref, char *alt)
 {
+    struct hgvs_des *des = &spec.des;
+    hgvs_des_clear(des);
     
+    const char *a = alt;
+    const char *r = ref;
+    // pos may differ from _pos, but _pos will not change in this function
+    int pos = _pos;
+    des->chrom = strdup(name);
+    
+    // for GATK users, <NON_REF> allele will be treat as ref
+    if ( strcmp(alt, "<NON_REF>") == 0 ) {
+      des->type = var_type_nonref;
+      return 0;
+    }
+    // skip same string from start
+    while (*a && *r && toupper(*a) == toupper(*r)) { a++; r++; pos++; }
+    
+    if ( !a[0] && !r[0] ) {
+	des->type = var_type_ref;
+	return 0;
+    }
+    
+    // if ref and alternative allele are 1 base, take it as snp
+    if ( *a && *r && !a[1] && !r[1] ) {
+	// mpileip may output X allele, treat as ref
+	if ( *a == '.' || *a == 'X' || *a == '*') {
+	    des->type = var_type_ref;
+	    return 0;
+	}
+	// for most cases, it is a snp
+	des->type = var_type_snp;
+	des->start = des->end = pos;
+	des->ref_length = des->alt_length = 1;
+	des->ref = strndup(r, 1);
+	des->alt = strndup(a, 1);
+	return 0;
+    }
+    // if alternate allele longer than ref, take it as insertion
+    if ( *a && !*r ) {
+	des->type = var_type_ins;
+	while ( *a ) a++;
+	des->start = pos;
+	des->ref_length = 0;
+	des->ref = str_init;
+	des->end = pos +1;
+	des->alt_length = (a-alt) - (r-ref);
+	des->alt = strndup(a-des->alt_length, des->alt_length);
+	return 0;
+    }
+    // if ref allele longer than alt, should be deletion
+    if ( !*a && *r) {	
+	des->type = var_type_del;
+	while ( *r ) r++;
+	des->start = pos;
+	des->ref_length = (r-ref) - (a-alt);
+	des->ref = strndup(r-des->ref_length, des->ref_length);
+	des->end = pos + des->ref_length -1;
+	des->alt_length = 0;
+	des->alt = str_init;
+        return 0;
+    }
+
+    // trim tails if ends are same
+    const char *ae = a;
+    const char *re = r;
+    while ( ae[1] ) ae++;
+    while ( re[1] ) re++;
+    while ( re > r && ae > a && toupper(*re) == toupper(*ae) ) {
+	re--;
+	ae--;
+    }
+    if (ae == a && re == r) {
+        des->type = var_type_snp;
+        des->start = pos;
+        des->ref_length =  1;
+        des->ref = strndup(r, 1);
+        des->alt_length = 1;
+        des->alt = strndup(a, 1);
+        return 0;
+    }
+    // check a and e in first step, so "re==r && ae == a" would not happen here 
+    if ( ae == a) {
+	des->type = var_type_del;
+	des->start = pos;
+	des->ref_length = re -r + 1;
+	des->ref = strndup(r, des->ref_length);
+	des->end = pos + des->ref_length -1;
+	des->alt_length = 0;
+	des->alt = str_init;
+        return 0;
+    }
+    if (re == r) {
+	des->type = var_type_ins;
+	des->start = pos;
+	des->end = pos+1;
+	des->ref_length = 0;
+	des->ref = str_init;
+	des->alt_length = ae - a+1;
+	des->alt = strndup(a, des->alt_length);
+        return 0;
+    }
+    // delins
+    des->type = var_type_delins;
+    des->start = pos;
+    des->ref_length = re-r+1;
+    des->ref = strndup(r, des->ref_length);
+    des->alt_length = ae-a+1;
+    des->alt = strndup(a, des->alt_length);
+    des->end = pos + des->ref_length -1;
+    return 0;    
 }
 
 int parse_hgvs_name(const char *name)
@@ -369,7 +483,7 @@ int parse_hgvs_name(const char *name)
     return 0;
 }
 // 
-int find_the_block(struct genepred_line *line, int *blk_start, int *blk_end, int pos)
+static int find_the_block(struct genepred_line *line, int *blk_start, int *blk_end, int pos)
 {
     *blk_start = 0;
     *blk_end = 0;
@@ -391,7 +505,7 @@ int find_the_block(struct genepred_line *line, int *blk_start, int *blk_end, int
     // Always return 0 ? if out of range return 1??
     return 0;
 }
-int find_locate(struct genepred_line *line, int *pos, int *offset, int start, int *exon_id)
+static int find_locate(struct genepred_line *line, int *pos, int *offset, int start, int *exon_id)
 {
     int block1 = 0;
     int block2 = 0;
@@ -418,7 +532,7 @@ int find_locate(struct genepred_line *line, int *pos, int *offset, int start, in
     *exon_id = block1;
     return 0;
 }
-int check_func_vartype(struct genepred_line *line, int pos, int offset, int ref_length, char *ref, int alt_length, char *alt, struct var_func_type *type)
+static int check_func_vartype(struct genepred_line *line, int pos, int offset, int ref_length, char *ref, int alt_length, char *alt, struct var_func_type *type)
 {    
     if ( line->cdsstart == line->cdsend ) {
         type->func = func_region_noncoding;
@@ -435,6 +549,7 @@ int check_func_vartype(struct genepred_line *line, int pos, int offset, int ref_
         }
     }
 
+    struct hgvs_des *des = &spec.des;
     // Check the exon or intron id.
     int i;
     int cds_pos;
@@ -567,7 +682,11 @@ int check_func_vartype(struct genepred_line *line, int pos, int offset, int ref_
         for ( i = 0; i < ref_length; ++i ) {
             // debug_print("%d, %d, %d, %s.", line->utr5_length, start, cod, ori_seq);
             if ( seq2code4(ori_seq[cod+i]) != seq2code4(ref_seq[i]) ) {
-                warnings("Inconsistance nucletide. %c vs %c.", ori_seq[cod+i], ref_seq[i]);
+                if ( seq2code4(ori_seq[cod+i]) == seq2code4(alt_seq[i]) ) {
+                    type->vartype = var_is_no_call;
+                } else {
+                    warnings("Inconsistance nucletide. %s:%d, %c vs %c.", des->chrom, des->start,ori_seq[cod+i], ref_seq[i]);
+                }
             }
         }
     }
@@ -633,6 +752,7 @@ int check_func_vartype(struct genepred_line *line, int pos, int offset, int ref_
     type->fs = 0;
     return 0;
 }
+int print_hgvs_summary();
 
 // return 0 on success, 1 on out of range.
 int generate_hgvs_core(struct genepred_line *line, struct hgvs_core *core, int start, int end, int ref_length, char *ref, int alt_length, char *alt)
@@ -683,7 +803,7 @@ int generate_hgvs_core(struct genepred_line *line, struct hgvs_core *core, int s
     return 0; 
 }
 // Fill all possible HGVS names for this variant.
-int fill_hgvs_name()
+struct hgvs_des *fill_hgvs_name()
 {
     // Check the position inited.
     struct hgvs_des *des = &spec.des;
@@ -710,7 +830,8 @@ int fill_hgvs_name()
         line = line->next;
         genepred_line_destroy(temp);
     }
-    return 0;
+    // print_hgvs_summary();
+    return des;
 }
 
 int print_hgvs_summary()
