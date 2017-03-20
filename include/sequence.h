@@ -24,20 +24,9 @@
 
 typedef char * (*func_dup_seq)(const char *, unsigned long );
 
-static inline char *rev_seqs(const char *dna_seqs, unsigned long n)
-{
-    if ( n == 0 )
-        return NULL;
-    int i;
-    char *rev = (char*)calloc(n+1, sizeof(char));    
-    for ( i = 0; i < n; ++i) 
-        rev[i] = revseqarr[seq2code4(dna_seqs[n-i-1])];
-    rev[n] = '\0';
-    return rev;
-}
-
 extern int seq2code4(uint8_t seq);
 
+extern char *rev_seqs(const char *dna_seqs, unsigned long n);
 
 #define C4_Stop 0
 #define C4_Phe  1

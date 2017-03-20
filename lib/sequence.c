@@ -47,6 +47,19 @@ int seq2code4(uint8_t seq)
     };
     return seq2num_table[seq];
 }
+
+char *rev_seqs(const char *dna_seqs, unsigned long n)
+{
+    if ( n == 0 )
+        return NULL;
+    int i;
+    char *rev = (char*)calloc(n+1, sizeof(char));    
+    for ( i = 0; i < n; ++i) 
+        rev[i] = revseqarr[seq2code4(dna_seqs[n-i-1])];
+    rev[n] = '\0';
+    return rev;
+}
+
 // define_var_type return the variant type from the transcript block and variants
 // only account exon region
 // start is 0 based position aligned on the block
