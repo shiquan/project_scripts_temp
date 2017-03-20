@@ -24,7 +24,7 @@
 
 typedef char * (*func_dup_seq)(const char *, unsigned long );
 
-extern int seq2code4(uint8_t seq);
+extern int seq2code4(int seq);
 
 extern char *rev_seqs(const char *dna_seqs, unsigned long n);
 

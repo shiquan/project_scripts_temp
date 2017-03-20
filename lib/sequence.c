@@ -25,9 +25,9 @@ int check_stop_codon(char *seq, char *p_end )
     }
     return -1;
 }
-int seq2code4(uint8_t seq)
+int seq2code4(int seq)
 {
-    static const uint8_t seq2num_table[256] = {
+    static const int seq2num_table[256] = {
         4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4,
         4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4,
         4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4,
