@@ -22,8 +22,6 @@
 
 #define SEQ_COMP(a, b) (a + b == 3)
 
-extern int seq2code4(uint8_t seq);
-
 typedef char * (*func_dup_seq)(const char *, unsigned long );
 
 static inline char *rev_seqs(const char *dna_seqs, unsigned long n)
@@ -37,6 +35,9 @@ static inline char *rev_seqs(const char *dna_seqs, unsigned long n)
     rev[n] = '\0';
     return rev;
 }
+
+extern int seq2code4(uint8_t seq);
+
 
 #define C4_Stop 0
 #define C4_Phe  1
