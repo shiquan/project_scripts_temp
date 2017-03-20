@@ -20,7 +20,7 @@
 #define seqarr    "ACGTN"
 #define revseqarr "TGCAN"
 
-#define SEQ_COMP(a, b) (a + b == 3)
+#define SEQ_COMP(a,b) (a + b == 3)
 
 typedef char * (*func_dup_seq)(const char *, unsigned long );
 
