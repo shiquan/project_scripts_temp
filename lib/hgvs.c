@@ -51,9 +51,9 @@ int init_hgvs_spec(const char *fname, const char *fasta)
 {
     memset(&spec, 0, sizeof(struct hgvs_spec));
     spec.data = genepred_spec_init();
-    if ( genepred_load_data(spec.data, fname) == NULL )
+    if ( genepred_load_data(spec.data, fname)  )
         return 1;
-    if ( genepred_load_fasta(spec.data, fasta) == NULL )
+    if ( genepred_load_fasta(spec.data, fasta) )
         return 1;
     spec.exp = (regex_t*)malloc(sizeof(regex_t));
     int rv;
@@ -63,6 +63,21 @@ int init_hgvs_spec(const char *fname, const char *fasta)
     }    
     return 0;
 }
+
+int set_transcripts_list(const char *fname)
+{
+    if ( genepred_load_trans(spec.data, fname) == 1)
+        return 1;
+    return 0;
+}
+
+int set_genes_list(const char *fname)
+{
+    if ( genepred_load_genes(spec.data, fname) == 1 )
+        return 1;
+    return 0;
+}
+
 enum nametype {
     name_is_unknown = -1,
     name_is_chromosome,

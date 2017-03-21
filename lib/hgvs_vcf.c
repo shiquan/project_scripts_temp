@@ -183,6 +183,7 @@ int setter_hgvs_vcf(bcf_hdr_t *hdr, bcf1_t *line)
     // kstring_t flank_seq = { 0, 0, 0};
     kstring_t vartype = { 0, 0, 0};
     bcf_get_variant_types(line);
+    int is_empty = 1;
     for ( i = 1; i < line->n_allele; ++i ) {
         const char *name = bcf_hdr_id2name(hdr, line->rid);        
         setter_description(name, line->pos+1, line->d.allele[0], line->d.allele[i]);
@@ -204,12 +205,12 @@ int setter_hgvs_vcf(bcf_hdr_t *hdr, bcf1_t *line)
         char *vartype_string = retrieve_vartype_des(des);
 
         if ( gene_string == NULL ) {
-            kputs( ".", &gene);
+            kputs(".", &gene);
             kputs(".", &transcript);
             kputs(".", &hgvs_nom);
             kputs(".", &vartype);
         } else {
-            
+            is_empty = 0;
             kputs(gene_string, &gene);
             kputs(trans_string, &transcript);
             kputs(hgvs_string, &hgvs_nom);
@@ -221,12 +222,17 @@ int setter_hgvs_vcf(bcf_hdr_t *hdr, bcf1_t *line)
             free(vartype_string);
         }
     }
-    if ( i > 1) {
+    if ( i > 1 && is_empty == 0) {
         bcf_update_info_string(hdr, line, "Gene", gene.s);
         bcf_update_info_string(hdr, line, "Transcript", transcript.s);
         bcf_update_info_string(hdr, line, "HGVSnom", hgvs_nom.s);
-        // bcf_update_info_string(hdr, line, "ExIn_id", exin.s);
         bcf_update_info_string(hdr, line, "VarType", vartype.s);
     }
+
+    free(gene.s);
+    free(transcript.s);
+    free(hgvs_nom.s);
+    free(vartype.s);
+    
     return 0;                  
 }

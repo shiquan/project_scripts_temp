@@ -43,7 +43,16 @@ static const char *hts_bcf_wmode(int file_type)
 
 int usage()
 {
-    fprintf(stderr, "vcf_hgvs -data < genepred data > -fasta <transcript rna>  input.vcf.gz[bcf/vcf]\n");
+    fprintf(stderr, "vcf_hgvs\n"
+            " -data        < genepred data >\n"
+            " -fasta       < transcript rna fasta file >\n"
+            " -gene_list   [ genes list file]\n"
+            " -trans_list  [ transcripts list file]\n"
+            "  input.vcf.gz[bcf/vcf]\n"
+            "\n"
+            "shiquan@genomics.cn\n"
+        );
+    
     return 1;
 }
 
@@ -54,6 +63,9 @@ int parse_args(int ac, char **av)
 
     const char *fname_output = NULL;
     const char *out_type_string = NULL;
+    const char *genes_fname = NULL;
+    const char *transcripts_fname = NULL;
+    
     int i;
 
     for ( i = 0; i < ac; ) {
@@ -71,6 +83,10 @@ int parse_args(int ac, char **av)
             arg_var = &fname_output;
         else if ( strcmp(a, "-O") == 0 )
             arg_var = &out_type_string;
+        else if ( strcmp(a, "-gene_list") == 0 )
+            arg_var = &genes_fname;
+        else if ( strcmp(a, "-trans_list") == 0 )
+            arg_var = &transcripts_fname;
         
         if ( arg_var != 0 ) {
             if ( i == ac )
@@ -120,11 +136,27 @@ int parse_args(int ac, char **av)
     }
 
     args.hdr_in = bcf_hdr_read(args.fp_input);
+
     args.fp_output = fname_output == 0 ? hts_open("-", hts_bcf_wmode(out_type)) :
         hts_open(fname_output, hts_bcf_wmode(out_type));
 
     args.hdr_out = bcf_hdr_dup(args.hdr_in);
 
+    if ( init_hgvs_anno(args.data, args.fasta, args.hdr_out) )
+        return 1;
+
+    if ( genes_fname != NULL ) {
+        if ( set_genes_list ( genes_fname ) ) {
+            warnings("Failed to load gene list : %s", genes_fname);
+        }
+    }
+
+    if ( transcripts_fname != NULL ) {
+        if ( set_transcripts_list ( transcripts_fname ) ) {
+            warnings("Failed to load transcripts list : %s", transcripts_fname);
+        }
+    }
+    
     return 0;
 }
 
@@ -139,7 +171,7 @@ int memory_release()
 
 int annotate_hgvs()
 {
-    init_hgvs_anno(args.data, args.fasta, args.hdr_out);
+
     bcf_hdr_write(args.fp_output, args.hdr_out);
     bcf1_t *line = bcf_init();
     for ( ;; ) {

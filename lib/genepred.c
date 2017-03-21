@@ -100,7 +100,7 @@ void genepred_spec_destroy(struct genepred_spec *spec)
     free(spec);
     spec = NULL;
 }
-struct genepred_spec *genepred_load_data(struct genepred_spec *spec, const char *fname)
+int genepred_load_data(struct genepred_spec *spec, const char *fname)
 {
     if ( spec == NULL )
         error("Invoke genepred_spec_init() before load data.");
@@ -123,9 +123,9 @@ struct genepred_spec *genepred_load_data(struct genepred_spec *spec, const char 
     if ( spec->idx == NULL )
         error("Failed to load index of %s", fname);
 
-    return spec;
+    return 0;
 }
-struct genepred_spec *genepred_load_fasta(struct genepred_spec *spec, const char *fname)
+int genepred_load_fasta(struct genepred_spec *spec, const char *fname)
 {
     if ( spec == NULL )
         error("Invoke genepred_spec_init() before load fasta file.");
@@ -140,18 +140,22 @@ struct genepred_spec *genepred_load_fasta(struct genepred_spec *spec, const char
     if (spec->fai == NULL)
         error("%s : %s.", fname, strerror(errno));
 
-    return spec;
+    return 0;
 }
 
-struct genepred_spec *genepred_load_genes(struct genepred_spec *spec, const char *fname)
+int genepred_load_genes(struct genepred_spec *spec, const char *fname)
 {
     spec->genes = init_list(fname);
-    return spec;
+    if ( spec->genes == NULL )
+        return 1;
+    return 0;
 }
-struct genepred_spec *genepred_load_trans(struct genepred_spec *spec, const char *fname)
+int genepred_load_trans(struct genepred_spec *spec, const char *fname)
 {
     spec->trans = init_list(fname);
-    return spec;
+    if ( spec->trans == NULL )
+        return 1;
+    return 0;
 }
 struct genepred_line *genepred_line_create()
 {
@@ -456,6 +460,35 @@ int read_line(struct genepred_spec *spec, kstring_t *string)
     }
     return 0;
 }
+// return 0 on success checked.
+int check_gene_trans(struct genepred_spec *spec,  struct genepred_line *line)
+{
+    if ( spec->genes ) {
+        if ( check_list(spec->genes, line->name2) == 0 ) {
+            return 0;
+        } else {        
+            if ( spec->trans ) {
+                // Only check transcript name, no version check.
+                if ( check_list(spec->trans, line->name1) == 0 ) {
+                    return 0;
+                }
+                return 1;
+            }
+        }
+    } else {
+        if ( spec->trans ) {
+            // Only check transcript name, no version check.
+            if ( check_list(spec->trans, line->name1) == 0 ) {
+                return 0;
+            }
+            return 1;
+        } else {
+            // if no gene list or transcript list specified, skip check.
+            return 0;
+        }
+    }
+    return 1;
+}
 
 int genepred_read_line(struct genepred_spec *spec, struct genepred_line *line)
 {
@@ -465,15 +498,9 @@ int genepred_read_line(struct genepred_spec *spec, struct genepred_line *line)
         if ( read_line(spec, &string) )
             break;
         parse_line(&string, line);
-        if ( spec->genes ) {
-            if ( check_list(spec->genes, line->name2) == 0 )
-                return 0;
-        }
-        if ( spec->trans ) {
-            // Only check transcript name, no version check.
-            if ( check_list(spec->trans, line->name1) == 0 )
-                return 0;
-        }
+        if ( check_gene_trans(spec, line) == 0 )
+            continue;
+        return 0;
     }
     return 1;
 }
@@ -667,6 +694,10 @@ struct genepred_line *genepred_retrieve_region(struct genepred_spec *spec, char 
     while ( tbx_itr_next(spec->fp, spec->idx, itr, &string) >= 0 ) {
         struct genepred_line *line = genepred_line_create();
         parse_line(&string, line);
+
+        if ( check_gene_trans(spec, line) == 1 )
+            continue;
+        
         if ( head == NULL ) {
             head = line;
         }

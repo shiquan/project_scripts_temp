@@ -115,10 +115,10 @@ void genepred_spec_destroy(struct genepred_spec *spec);
 extern int parse_line(kstring_t *string, struct genepred_line *line);
 extern int parse_line_locs(struct genepred_line *line);
 
-extern struct genepred_spec *genepred_load_data(struct genepred_spec *spec, const char *fname);
-extern struct genepred_spec *genepred_load_fasta(struct genepred_spec *spec, const char *fname);
-extern struct genepred_spec *genepred_load_genes(struct genepred_spec *spec, const char *fname);
-extern struct genepred_spec *genepred_load_trans(struct genepred_spec *spec, const char *fname);
+extern int genepred_load_data(struct genepred_spec *spec, const char *fname);
+extern int genepred_load_fasta(struct genepred_spec *spec, const char *fname);
+extern int genepred_load_genes(struct genepred_spec *spec, const char *fname);
+extern int genepred_load_trans(struct genepred_spec *spec, const char *fname);
 extern struct genepred_line *genepred_retrieve_gene(struct genepred_spec *spec, const char *name);
 extern struct genepred_line *genepred_retrieve_trans(struct genepred_spec *spec, const char *name);
 extern struct genepred_line *genepred_retrieve_region(struct genepred_spec *spec, char *name, int start, int end);
