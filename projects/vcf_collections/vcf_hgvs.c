@@ -177,7 +177,9 @@ int annotate_hgvs()
     for ( ;; ) {
         if ( bcf_read(args.fp_input, args.hdr_in, line) != 0 )
             break;
-        setter_hgvs_vcf(args.hdr_out, line);
+        if ( bcf_get_variant_types(line) != VCF_REF )
+            setter_hgvs_vcf(args.hdr_out, line);
+        
         bcf_write1(args.fp_output, args.hdr_out, line);
     }
     bcf_destroy(line);
