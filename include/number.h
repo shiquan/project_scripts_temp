@@ -13,9 +13,6 @@ extern double force2num(char *str);
 extern double force2num_l(char *str, int l);
 extern int str2int(char *str);
 extern int str2int_l(char *str, int l);
-
-
-
-
+extern int str2float(char *str);
 
 #endif

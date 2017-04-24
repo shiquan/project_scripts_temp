@@ -24,7 +24,7 @@ typedef kh_list_t list_hash_t;
 
 KSTREAM_INIT(gzFile, gzread, 8192)
 
-struct list {
+struct line_list {
     list_hash_t *hash;
     int lines;
     char **reads;
@@ -37,8 +37,8 @@ struct args {
     const char *format;
     int noheader;
     const char *fast;
-    struct list *genes;
-    struct list *transcripts;    
+    struct line_list *genes;
+    struct line_list *transcripts;    
 } args = {
     .refgene_fname = NULL,
     .format = NULL,
@@ -48,14 +48,14 @@ struct args {
     .transcripts = NULL,
 };
 
-struct list *init_list(const char *fn)
+struct line_list *init_list(const char *fn)
 {
     if (fn == NULL)
 	return NULL;
     int i;
     khiter_t k;
     int ret;
-    struct list *list = (struct list*)malloc(sizeof(struct list));
+    struct line_list *list = (struct line_list*)malloc(sizeof(struct line_list));
         
     list->reads = hts_readlines(fn, &list->lines);
     if ( list->reads == NULL) {
@@ -87,7 +87,7 @@ struct list *init_list(const char *fn)
     free(list);
     return NULL;
 }
-void destroy_list(struct list* list)
+void destroy_list(struct line_list* list)
 {
     if (list == NULL)
         return;
@@ -202,7 +202,7 @@ int retrieve_from_dbref()
     ks = ks_init(fp);
     khiter_t k;
     kstring_t string = {0, 0, 0};
-    struct genepred line = {.clear = 1,};
+    struct genepred_line line;
     if (args.noheader == 0 ) 
         fprintf(stdout, "#Chrom\tStart(0based)\tEnd(1based)\tStrand\tGene\tTranscript\tExon\tStart(p.)\tEnd(p.)\tStart(c.)\tEnd(c.)\n");
     while (ks_getuntil(ks, 2, &string, &dret) >= 0) {

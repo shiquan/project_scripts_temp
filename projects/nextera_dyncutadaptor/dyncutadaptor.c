@@ -175,10 +175,10 @@ int location(const uint8_t * str, int n, const uint8_t * pat, int m, int *prep)
 int loc_adaptor(uint8_t * str, int n, uint8_t * pat, int m, int * prep, int *k)
 {
     *k = location(str, n, pat, m, prep);
-    if ( *k) return 1;
+    if ( *k ) return 1;
     seq_comp(str, n);
     *k = location(str, n, pat, m, prep);
-    if ( *k) return -1;
+    if ( *k ) return -1;
     return 0;		
 }
 
@@ -228,11 +228,11 @@ int cut_adaptor(kseq_t * seq1, kseq_t *seq2, uint8_t * pat, int len, int * prep)
     int length = seq1->seq.l;
     if ( args.slave_mode ) {
         m = location(s, seq1->seq.l, pat, len, prep);
-        if (check_loc(s, seq1->seq.l, pat, len, m)) {
+        if ( check_loc(s, seq1->seq.l, pat, len, m) ) {
             loc = m;
         } else {
             n = location(p, seq2->seq.l, pat, len, prep);
-            if (check_loc(p, seq2->seq.l, pat, len, n)) {
+            if ( check_loc(p, seq2->seq.l, pat, len, n) ) {
                 loc = n;
             }
         }

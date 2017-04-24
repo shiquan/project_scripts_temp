@@ -96,7 +96,9 @@ extern struct bedaux *bed_dup(struct bedaux *bed);
 extern int bed_getline_chrom(struct bed_chrom *chrom, struct bed_line *line);
 extern int bed_getline(struct bedaux *bed, struct bed_line *line);
 // read a bed file
+extern int bed_read_bigfile(struct bedaux *bed, const char *fname);
 extern int bed_read(struct bedaux *bed, const char *fname);
+
 // sort
 extern int bed_sort(struct bedaux *bed);
 // merge

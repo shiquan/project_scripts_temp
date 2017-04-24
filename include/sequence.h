@@ -85,6 +85,12 @@ static inline int codon2aminoid(char *codon)
     return codon_matrix[seq2code4(codon[0])][seq2code4(codon[1])][seq2code4(codon[2])];
 }
 
+static inline int seq_is_equal(char a, char b)
+{
+    int ret;    
+    ret = seq2code4(a) - seq2code4(b);
+    return ret;
+}
 // check the variants type
 enum var_type {
     _var_type_promoter_to_int = -1,

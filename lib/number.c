@@ -274,6 +274,10 @@ int str2int(char *str)
 {
     return (int)force2num(str);
 }
+int str2float(char *str)
+{
+    return (float)force2num(str);
+}
 int str2int_l(char *str, int l)
 {
     return (int)force2num_l(str, l);
