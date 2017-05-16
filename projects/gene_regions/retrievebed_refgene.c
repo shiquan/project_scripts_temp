@@ -48,65 +48,65 @@ struct args {
     .transcripts = NULL,
 };
 
-struct line_list *init_list(const char *fn)
-{
-    if (fn == NULL)
-	return NULL;
-    int i;
-    khiter_t k;
-    int ret;
-    struct line_list *list = (struct line_list*)malloc(sizeof(struct line_list));
+/* struct line_list *init_list(const char *fn) */
+/* { */
+/*     if (fn == NULL) */
+/* 	return NULL; */
+/*     int i; */
+/*     khiter_t k; */
+/*     int ret; */
+/*     struct line_list *list = (struct line_list*)malloc(sizeof(struct line_list)); */
         
-    list->reads = hts_readlines(fn, &list->lines);
-    if ( list->reads == NULL) {
-	fprintf(stderr, "%s : %s\n", fn, strerror(errno));
-        free(list);
-        return NULL;
-    }
+/*     list->reads = hts_readlines(fn, &list->lines); */
+/*     if ( list->reads == NULL) { */
+/* 	fprintf(stderr, "%s : %s\n", fn, strerror(errno)); */
+/*         free(list); */
+/*         return NULL; */
+/*     } */
     
-    if (list->lines == 0)
-        goto empty_list;
+/*     if (list->lines == 0) */
+/*         goto empty_list; */
 
-    list->hash = kh_init(list);
-    for ( i=0; i< list->lines; ++i ) {
-	char *name = list->reads[i];
-        if (name == NULL)
-            continue;
-        if (*name == '#' || *name == '/')
-            continue;
+/*     list->hash = kh_init(list); */
+/*     for ( i=0; i< list->lines; ++i ) { */
+/* 	char *name = list->reads[i]; */
+/*         if (name == NULL) */
+/*             continue; */
+/*         if (*name == '#' || *name == '/') */
+/*             continue; */
 
-	k = kh_get(list, list->hash, name);
-	if (k == kh_end(list->hash))
-	    k = kh_put(list, list->hash, name, &ret);	
-    }
+/* 	k = kh_get(list, list->hash, name); */
+/* 	if (k == kh_end(list->hash)) */
+/* 	    k = kh_put(list, list->hash, name, &ret);	 */
+/*     } */
     
-    return list;
+/*     return list; */
     
-  empty_list:
-    free(list->reads);
-    free(list);
-    return NULL;
-}
-void destroy_list(struct line_list* list)
-{
-    if (list == NULL)
-        return;
-    if ( list->reads ) {
-        int i;
-        for (i=0; i<list->lines; ++i) 
-	    free(list->reads[i]);
-	free(list->reads);
-    }
+/*   empty_list: */
+/*     free(list->reads); */
+/*     free(list); */
+/*     return NULL; */
+/* } */
+/* void destroy_list(struct line_list* list) */
+/* { */
+/*     if (list == NULL) */
+/*         return; */
+/*     if ( list->reads ) { */
+/*         int i; */
+/*         for (i=0; i<list->lines; ++i)  */
+/* 	    free(list->reads[i]); */
+/* 	free(list->reads); */
+/*     } */
    
-    if ( list->hash )
-	kh_destroy(list, list->hash);
-    free(list);
-}
-void destroy_args()
-{
-    destroy_list(args.genes);
-    destroy_list(args.transcripts);
-}
+/*     if ( list->hash ) */
+/* 	kh_destroy(list, list->hash); */
+/*     free(list); */
+/* } */
+/* void destroy_args() */
+/* { */
+/*     destroy_list(args.genes); */
+/*     destroy_list(args.transcripts); */
+/* } */
 int usage()
 {
     fprintf(stderr, "retrievebed\n");
@@ -168,8 +168,9 @@ int parse_args(int argc, char **argv)
         return usage();
     // if -fast specified, ignore gene or transcript list
     if ( args.fast == 0) {
-        args.genes = init_list(genes);
-        args.transcripts = init_list(transcripts);
+        // args.genes = init_list(genes);
+        // args.transcripts = init_list(transcripts);
+        genepred_load_genes(args.spec
     }
     
     if ( args.format == 0 )
@@ -248,7 +249,7 @@ int main(int argc, char **argv)
         return 1;
     int ret;
     ret = retrieve_from_dbref();
-    destroy_args();    
+    // destroy_args();    
     return ret;
 }
 
