@@ -8,7 +8,7 @@
 #include "htslib/vcf.h"
 #include "htslib/kseq.h"
 #include "htslib/kstring.h"
-
+#include "version.h"
 
 enum filetype {
     filetype_promote_int = -1,
@@ -84,11 +84,18 @@ int usage()
             "Note:\n"
             "1. For parameter -gen, the tag format is [AA|Aa|aa], 'A' stand for wild allele, and 'a' stand for mutated\n"
             "   allele(s). All alternative alleles, if more than one alt allele like mnps, should be count into 'a'.\n"
-            "Homepage:\nhttps://github.com/shiquan/small_projects\n"
+            "Version: %s + htslib %s\n"
+            "Homepage: https://github.com/shiquan/small_projects\n",
+            PROJECTS_VERSION, hts_version()
         );
     return 1;
 }
 
+float hardy_weinberg_equilibrium_exact(int wild_hom, int het, int mutated_hom)
+{
+    
+    return 0.0;
+}
 int parse_args(int argc, char **argv)
 {
     int i;
