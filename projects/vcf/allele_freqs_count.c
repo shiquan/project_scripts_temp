@@ -72,13 +72,19 @@ int usage()
             "Usage:\n"
             " vcf_allele_freq [options] input.vcf.gz\n"
             " Options:\n" 
-            "     -ac   allele count tag name, default is AC\n"
-            "     -af   allele frequency tag name, default is AF\n"
-            "     -sam  affected sample list tag name, default is ASAM\n"
+            "     -ac   allele count tag name, default is AlleleCount\n"
+            "     -af   allele frequency tag name, default is AlleleFreq\n"
+            "     -hwe  tag name for Fisher exact test of Hardy-Weinberg Equilibrium\n"
+            "     -sam  affected sample list tag name for each allele\n"
+            "     -gen  sample counts for homozygous ref, heterozygous and homozygous alts, the format is [AA|Aa|aa]\n"
             "     -O    output format [b|z]\n"
             "     -o    output file\n"
             "     -force_skip_uncover  force skip the uncovered positions, default treat as reference\n"
-            "\nHomepage: https://github.com/shiquan/small_projects\n"
+            "\n"
+            "Note:\n"
+            "1. For parameter -gen, the tag format is [AA|Aa|aa], 'A' stand for wild allele, and 'a' stand for mutated\n"
+            "   allele(s). All alternative alleles, if more than one alt allele like mnps, should be count into 'a'.\n"
+            "Homepage:\nhttps://github.com/shiquan/small_projects\n"
         );
     return 1;
 }
