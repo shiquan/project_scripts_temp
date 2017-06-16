@@ -24,7 +24,7 @@ DOC_DATE := $(shell date +'%Y-%m-%d %R %Z')
 version.h: $(if $(wildcard version.h),$(if $(findstring "$(PACKAGE_VERSION)",$(shell cat version.h)),,force))
 endif
 version.h:
-	echo '#define VCFANNO_VERSION "$(PACKAGE_VERSION)"' > $@
+	echo '#define PROJECTS_VERSION "$(PACKAGE_VERSION)"' > $@
 
 
 .SUFFIXES:.c .o
