@@ -100,6 +100,7 @@ int parse_args(int argc, char **argv)
 {
     int i;
     const char * output_filetype_string = 0;
+    const char *version_string = 0;
     for ( i = 1; i < argc; ) {
         const char *a = argv[i++];
         if ( strcmp(a, "-h") == 0 || strcmp(a, "-help") == 0 )
@@ -123,6 +124,8 @@ int parse_args(int argc, char **argv)
             var = &args.asam_tag_string;
             smp_list = 1;
         }
+        else if ( strcmp(a, "-v") == 0 )
+            var = &version_string;
         
         if ( var != 0 ) {
             if ( i == argc )
@@ -139,6 +142,9 @@ int parse_args(int argc, char **argv)
         error("Unknown argument : %s, use -h see help information.", a);
     }
 
+    if ( version_string == 0 )
+        error("Version of this database must be set by -v.");
+    
     if ( args.fname_input == 0 && (!isatty(fileno(stdin))) )
         args.fname_input = "-";
 
@@ -204,7 +210,7 @@ int parse_args(int argc, char **argv)
     id = bcf_hdr_id2int(args.hdr, BCF_DT_ID, args.ac_tag_string);
     if ( id == -1 ) {
         kstring_t str = { 0, 0, 0 };
-        ksprintf(&str, "##INFO=<ID=%s,Number=A,Type=Integer,Description=\"Counts of each allele for all samples.\">", args.ac_tag_string);
+        ksprintf(&str, "##INFO=<ID=%s,Number=A,Type=Integer,Description=\"Counts of each allele for all samples. Version=%s.\">", args.ac_tag_string, version_string);
         bcf_hdr_append(args.hdr, str.s);
         bcf_hdr_sync(args.hdr);
         id = bcf_hdr_id2int(args.hdr, BCF_DT_ID, args.ac_tag_string);
@@ -214,7 +220,7 @@ int parse_args(int argc, char **argv)
     id = bcf_hdr_id2int(args.hdr, BCF_DT_ID, args.af_tag_string);
     if ( id == -1 ) {
         kstring_t str = { 0, 0, 0 };
-        ksprintf(&str, "##INFO=<ID=%s,Number=A,Type=Float,Description=\"Frequency of each allele for all samples.\">", args.af_tag_string);
+        ksprintf(&str, "##INFO=<ID=%s,Number=A,Type=Float,Description=\"Frequency of each allele for all samples. Version=%s.\">", args.af_tag_string, version_string);
         bcf_hdr_append(args.hdr, str.s);
         bcf_hdr_sync(args.hdr);
         id = bcf_hdr_id2int(args.hdr, BCF_DT_ID, args.af_tag_string);
