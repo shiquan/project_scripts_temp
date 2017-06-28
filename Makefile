@@ -10,7 +10,7 @@ CC       = gcc
 CFLAGS   = -Wall -O3
 DEBUG_CFLAGS   = -g -Wall -O0
 DFLAGS   = -lz -lbz2 -llzma -pthread
-INCLUDES = -I include/ -I. -I$(HTSDIR)/
+INCLUDES = -Iinclude/ -I. -I$(HTSDIR)/
 
 
 all:$(PROG)
