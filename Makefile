@@ -7,8 +7,8 @@ include $(HTSDIR)/htslib.mk
 HTSLIB = $(HTSDIR)/libhts.a
 
 CC       = gcc
-CFLAGS   = -Wall -O3 -DHTS3
-DEBUG_CFLAGS   = -g -Wall -O0 -DHTS3
+CFLAGS   = -Wall -O3
+DEBUG_CFLAGS   = -g -Wall -O0
 DFLAGS   = -lz -lbz2 -llzma -pthread
 INCLUDES = -I include/ -I. -I$(HTSDIR)/
 
