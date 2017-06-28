@@ -15,15 +15,13 @@ INCLUDES = -Iinclude/ -I. -I$(HTSDIR)/
 
 all:$(PROG)
 
-# See htslib/Makefile
-PACKAGE_VERSION = 0.01
 ifneq "$(wildcard .git)" ""
 PACKAGE_VERSION := $(shell git describe --always --dirty)
 DOC_VERSION :=  $(shell git describe --always)+
 DOC_DATE := $(shell date +'%Y-%m-%d %R %Z')
-version.h: $(if $(wildcard version.h),$(if $(findstring "$(PACKAGE_VERSION)",$(shell cat version.h)),,force))
+pkg_version.h: $(if $(wildcard pkg_version.h),$(if $(findstring "$(PACKAGE_VERSION)",$(shell cat pkg_version.h)),,force))
 endif
-version.h:
+pkg_version.h:
 	echo '#define PROJECTS_VERSION "$(PACKAGE_VERSION)"' > $@
 
 
@@ -35,7 +33,7 @@ force:
 .c.o:
 	$(CC) -c $(CFLAGS) $(DFLAGS) $(INCLUDES) $< -o $@
 
-mk: version.h $(HTSLIB)
+mk: pkg_version.h $(HTSLIB)
 	-mkdir -p bin
 
 allele_freqs:
@@ -43,7 +41,7 @@ allele_freqs:
 
 
 clean: testclean
-	-rm -f gmon.out *.o *~ $(PROG) version.h 
+	-rm -f gmon.out *.o *~ $(PROG) pkg_version.h  version.h
 	-rm -rf bin/*.dSYM test/*.dSYM
 	-rm -rf bin/
 

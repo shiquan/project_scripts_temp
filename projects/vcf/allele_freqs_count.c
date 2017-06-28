@@ -8,7 +8,7 @@
 #include "htslib/vcf.h"
 #include "htslib/kseq.h"
 #include "htslib/kstring.h"
-#include "version.h"
+#include "pkg_version.h"
 #include <math.h>
 
 enum filetype {
