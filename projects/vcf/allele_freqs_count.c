@@ -9,6 +9,7 @@
 #include "htslib/kseq.h"
 #include "htslib/kstring.h"
 #include "version.h"
+#include <math.h>
 
 enum filetype {
     filetype_promote_int = -1,
@@ -24,6 +25,7 @@ struct args {
     const char *ac_tag_string;
     const char *af_tag_string;
     const char *asam_tag_string;
+    const char *hwe_tag_string;
     int output_filetype;
     htsFile *fp_input;
     htsFile *fp_output;
@@ -40,6 +42,7 @@ struct args {
     .ac_tag_string = NULL,
     .af_tag_string = NULL,
     .asam_tag_string = NULL,
+    .hwe_tag_string = NULL,
     .output_filetype = file_is_vcf,
     .fp_input = NULL,
     .fp_output = NULL,
@@ -52,8 +55,6 @@ struct args {
     .n_samples = 0,
     .counts = NULL,
 };
-
-static int smp_list = 0;
 
 static const char *bcf_wmode(enum filetype file_type)
 {
@@ -75,7 +76,7 @@ int usage()
             "     -ac   allele count tag name, default is AlleleCount\n"
             "     -af   allele frequency tag name, default is AlleleFreq\n"
             "     -hwe  tag name for Fisher exact test of Hardy-Weinberg Equilibrium\n"
-            "     -sam  affected sample list tag name for each allele\n"
+            "     -sam  affected sample list for each allele, sample seperated by /, format of this tag is [ Aa | aa ]\n"
             "     -gen  sample counts for homozygous ref, heterozygous and homozygous alts, the format is [AA|Aa|aa]\n"
             "     -O    output format [b|z]\n"
             "     -o    output file\n"
@@ -91,11 +92,171 @@ int usage()
     return 1;
 }
 
-float hardy_weinberg_equilibrium_exact(int wild_hom, int het, int mutated_hom)
-{
+#define SMALL_EPSILON 0.00000000000005684341886080801486968994140625
+#define EXACT_TEST_BIAS 0.00000000000000000000000010339757656912845935892608650874535669572651386260986328125
+
+// the SNPHWE2 function copy from plink_stats.c
+double SNPHWE2(int32_t obs_hets, int32_t obs_hom1, int32_t obs_hom2, uint32_t midp) {
+  // This function implements an exact SNP test of Hardy-Weinberg
+  // Equilibrium as described in Wigginton, JE, Cutler, DJ, and
+  // Abecasis, GR (2005) A Note on Exact Tests of Hardy-Weinberg
+  // Equilibrium. American Journal of Human Genetics. 76: 000 - 000.
+  //
+  // The original version was written by Jan Wigginton.
+  //
+  // This version was written by Christopher Chang.  It contains the following
+  // improvements over the original SNPHWE():
+  // - Proper handling of >64k genotypes.  Previously, there was a potential
+  //   integer overflow.
+  // - Detection and efficient handling of floating point overflow and
+  //   underflow.  E.g. instead of summing a tail all the way down, the loop
+  //   stops once the latest increment underflows the partial sum's 53-bit
+  //   precision; this results in a large speedup when max heterozygote count
+  //   >1k.
+  // - No malloc() call.  It's only necessary to keep track of a few partial
+  //   sums.
+  // - Support for the mid-p variant of this test.  See Graffelman J, Moreno V
+  //   (2013) The mid p-value in exact tests for Hardy-Weinberg equilibrium.
+  //
+  // Note that the SNPHWE_t() function below is a lot more efficient for
+  // testing against a p-value inclusion threshold.  SNPHWE2() should only be
+  // used if you need the actual p-value.
+    long obs_homc;
+    long obs_homr;
+    if (obs_hom1 < obs_hom2) {
+        obs_homc = obs_hom2;
+        obs_homr = obs_hom1;
+    } else {
+        obs_homc = obs_hom1;
+        obs_homr = obs_hom2;
+    }
+    int64_t rare_copies = 2LL * obs_homr + obs_hets;
+    int64_t genotypes2 = (obs_hets + obs_homc + obs_homr) * 2LL;
+    int32_t tie_ct = 1;
+    double curr_hets_t2 = obs_hets;
+    double curr_homr_t2 = obs_homr;
+    double curr_homc_t2 = obs_homc;
+    double tailp = (1 - SMALL_EPSILON) * EXACT_TEST_BIAS;
+    double centerp = 0;
+    double lastp2 = tailp;
+    double lastp1 = tailp;
+    double curr_hets_t1;
+    double curr_homr_t1;
+    double curr_homc_t1;
+    double preaddp;
+    if (!genotypes2) {
+        if (midp) {
+            return 0.5;
+        } else {
+            return 1;
+        }
+    }
     
-    return 0.0;
+    if (obs_hets * genotypes2 > rare_copies * (genotypes2 - rare_copies)) {
+        // tail 1 = upper
+        while (curr_hets_t2 > 1.5) {
+            // het_probs[curr_hets] = 1
+            // het_probs[curr_hets - 2] = het_probs[curr_hets] * curr_hets * (curr_hets - 1.0)
+            curr_homr_t2 += 1;
+            curr_homc_t2 += 1;
+            lastp2 *= (curr_hets_t2 * (curr_hets_t2 - 1)) / (4 * curr_homr_t2 * curr_homc_t2);
+            curr_hets_t2 -= 2;
+            if (lastp2 < EXACT_TEST_BIAS) {
+                if (lastp2 > (1 - 2 * SMALL_EPSILON) * EXACT_TEST_BIAS) {
+                    tie_ct++;
+                }
+                tailp += lastp2;
+                break;
+            }
+            centerp += lastp2;
+            if (centerp == INFINITY) {
+                return 0;
+            }
+        }
+        if ((centerp == 0) && (!midp)) {
+            return 1;
+        }
+        while (curr_hets_t2 > 1.5) {
+            curr_homr_t2 += 1;
+            curr_homc_t2 += 1;
+            lastp2 *= (curr_hets_t2 * (curr_hets_t2 - 1)) / (4 * curr_homr_t2 * curr_homc_t2);
+            curr_hets_t2 -= 2;
+            preaddp = tailp;
+            tailp += lastp2;
+            if (tailp <= preaddp) {
+                break;
+            }
+        }
+        curr_hets_t1 = obs_hets + 2;
+        curr_homr_t1 = obs_homr;
+        curr_homc_t1 = obs_homc;
+        while (curr_homr_t1 > 0.5) {
+            // het_probs[curr_hets + 2] = het_probs[curr_hets] * 4 * curr_homr * curr_homc / ((curr_hets + 2) * (curr_hets + 1))
+            lastp1 *= (4 * curr_homr_t1 * curr_homc_t1) / (curr_hets_t1 * (curr_hets_t1 - 1));
+            preaddp = tailp;
+            tailp += lastp1;
+            if (tailp <= preaddp) {
+                break;
+            }
+            curr_hets_t1 += 2;
+            curr_homr_t1 -= 1;
+            curr_homc_t1 -= 1;
+        }
+    } else {
+        // tail 1 = lower
+        while (curr_homr_t2 > 0.5) {
+            curr_hets_t2 += 2;
+            lastp2 *= (4 * curr_homr_t2 * curr_homc_t2) / (curr_hets_t2 * (curr_hets_t2 - 1));
+            curr_homr_t2 -= 1;
+            curr_homc_t2 -= 1;
+            if (lastp2 < EXACT_TEST_BIAS) {
+                if (lastp2 > (1 - 2 * SMALL_EPSILON) * EXACT_TEST_BIAS) {
+                    tie_ct++;
+                }
+                tailp += lastp2;
+                break;
+            }
+            centerp += lastp2;
+            if (centerp == INFINITY) {
+                return 0;
+            }
+        }
+        if ((centerp == 0) && (!midp)) {
+            return 1;
+        }
+        while (curr_homr_t2 > 0.5) {
+            curr_hets_t2 += 2;
+            lastp2 *= (4 * curr_homr_t2 * curr_homc_t2) / (curr_hets_t2 * (curr_hets_t2 - 1));
+            curr_homr_t2 -= 1;
+            curr_homc_t2 -= 1;
+            preaddp = tailp;
+            tailp += lastp2;
+            if (tailp <= preaddp) {
+                break;
+            }
+        }
+        curr_hets_t1 = obs_hets;
+        curr_homr_t1 = obs_homr;
+        curr_homc_t1 = obs_homc;
+        while (curr_hets_t1 > 1.5) {
+            curr_homr_t1 += 1;
+            curr_homc_t1 += 1;
+            lastp1 *= (curr_hets_t1 * (curr_hets_t1 - 1)) / (4 * curr_homr_t1 * curr_homc_t1);
+            preaddp = tailp;
+            tailp += lastp1;
+            if (tailp <= preaddp) {
+                break;
+            }
+            curr_hets_t1 -= 2;
+        }
+    }
+    if (!midp) {
+        return tailp / (tailp + centerp);
+    } else {
+        return (tailp - ((1 - SMALL_EPSILON) * EXACT_TEST_BIAS * 0.5) * tie_ct) / (tailp + centerp);
+    }
 }
+
 int parse_args(int argc, char **argv)
 {
     int i;
@@ -120,10 +281,10 @@ int parse_args(int argc, char **argv)
             var = &output_filetype_string;
         else if ( strcmp(a, "-o") == 0 )
             var = &args.fname_output;
-        else if ( strcmp(a, "-sam") == 0 ) {
+        else if ( strcmp(a, "-sam") == 0 ) 
             var = &args.asam_tag_string;
-            smp_list = 1;
-        }
+        else if ( strcmp(a, "-hwe") == 0 )
+            var = &args.hwe_tag_string;
         else if ( strcmp(a, "-v") == 0 )
             var = &version_string;
         
@@ -205,6 +366,12 @@ int parse_args(int argc, char **argv)
     if ( args.af_tag_string == NULL )
         args.af_tag_string = "AlleleFreq";
 
+    if ( args.asam_tag_string == NULL )
+        args.asam_tag_string = "SAMPLE_LIST";
+
+    if ( args.hwe_tag_string == NULL )
+        args.hwe_tag_string = "HWE_p";
+    
     // Update header IDs
     int id;
     id = bcf_hdr_id2int(args.hdr, BCF_DT_ID, args.ac_tag_string);
@@ -226,17 +393,26 @@ int parse_args(int argc, char **argv)
         id = bcf_hdr_id2int(args.hdr, BCF_DT_ID, args.af_tag_string);
         assert(bcf_hdr_idinfo_exists(args.hdr, BCF_HL_INFO, id));
     }
-    if ( smp_list == 1 ) {
-        id = bcf_hdr_id2int(args.hdr, BCF_DT_ID, args.asam_tag_string);
-        if ( id == -1 ) {
-            kstring_t str = { 0, 0, 0 };
-            ksprintf(&str, "##INFO=<ID=%s,Number=A,Type=Float,Description=\"Allele affected samples list.\">", args.asam_tag_string);
-            bcf_hdr_append(args.hdr, str.s);
-            bcf_hdr_sync(args.hdr);
-            id = bcf_hdr_id2int(args.hdr, BCF_DT_ID, args.af_tag_string);
-            assert(bcf_hdr_idinfo_exists(args.hdr, BCF_HL_INFO, id));
-        }
+    id = bcf_hdr_id2int(args.hdr, BCF_DT_ID, args.asam_tag_string);
+    if ( id == -1 ) {
+        kstring_t str = { 0, 0, 0 };
+        ksprintf(&str, "##INFO=<ID=%s,Number=A,Type=String,Description=\"Allele affected samples list.\">", args.asam_tag_string);
+        bcf_hdr_append(args.hdr, str.s);
+        bcf_hdr_sync(args.hdr);
+        id = bcf_hdr_id2int(args.hdr, BCF_DT_ID, args.af_tag_string);
+        assert(bcf_hdr_idinfo_exists(args.hdr, BCF_HL_INFO, id));
     }
+
+    id = bcf_hdr_id2int(args.hdr, BCF_DT_ID, args.hwe_tag_string);
+    if ( id == -1 ) {
+        kstring_t str = { 0, 0, 0 };
+        ksprintf(&str, "##INFO=<ID=%s,Number=1,Type=Float,Description=\"Hardy weinberg equation test p value.\">", args.hwe_tag_string);
+        bcf_hdr_append(args.hdr, str.s);
+        bcf_hdr_sync(args.hdr);
+        id = bcf_hdr_id2int(args.hdr, BCF_DT_ID, args.hwe_tag_string);
+        assert(bcf_hdr_idinfo_exists(args.hdr, BCF_HL_INFO, id));
+    }
+    
     bcf_hdr_write(args.fp_output, args.hdr);
     return 0;
 }
@@ -265,10 +441,19 @@ int generate_freq(bcf1_t *line)
         return 2;
 
     ngt /= args.n_samples;
-    
+    kstring_t *allele_samples = (kstring_t*)malloc(line->n_allele* sizeof(kstring_t));
+    for ( i = 0; i < line->n_allele; ++i ) {
+        allele_samples[i].l = allele_samples[i].m = 0;
+        allele_samples[i].s = NULL;
+    }
+    uint64_t n_ref_hom = 0;
+    uint64_t n_het  = 0;
+    uint64_t n_alt_hom = 0;
+    int type;
     for ( i = 0; i < args.n_samples; ++i ) {
         int32_t *b = args.tmp_arr + i*ngt;
         int j;
+        type = 0;
         for ( j = 0; j < 2; ++j ) {
             if ( (bcf_gt_is_missing(b[j]) || b[j] == bcf_int32_vector_end) ) {
                 if ( args.force_skip_uncover == 0 ) 
@@ -279,17 +464,30 @@ int generate_freq(bcf1_t *line)
                 all_counts++;
                 continue;
             }
-            args.counts[bcf_gt_allele(b[j])-1] ++;
+            int a = bcf_gt_allele(b[j]);
+            args.counts[a-1] ++;
+            kputs(args.hdr->samples[i], &allele_samples[a]);
+            kputc('|', &allele_samples[a]);
             all_counts++;
-        }        
+            type++;
+        }
+        if ( j == 1 )
+            error("Assume all position should be diploid. %s,%s,%d,%d",
+                  args.hdr->samples[i], bcf_hdr_id2name(args.hdr, line->rid), line->pos+1,bcf_gt_allele(b[j]-1));
+        if ( type == 0 )
+            n_ref_hom++;
+        else if ( type == 1 )
+            n_het++;
+        else
+            n_alt_hom++;
     }
-
+    
     kstring_t str = { 0, 0, 0 };
     for ( i = 0; i < args.n_cnt-1; ++i ) {
         if ( i )
             kputc(',', &str);
         kputw(args.counts[i], &str);
-    }
+    }   
     bcf_update_info_string(args.hdr, line, args.ac_tag_string, str.s);
     str.l = 0;
     for ( i = 0; i < args.n_cnt-1; ++i ) {
@@ -298,6 +496,24 @@ int generate_freq(bcf1_t *line)
         ksprintf(&str, "%f", (float)args.counts[i]/all_counts);        
     }
     bcf_update_info_string(args.hdr, line, args.af_tag_string, str.s);
+
+    str.l = 0;
+    for ( i = 1; i < line->n_allele; ++i ) {
+        if ( i > 1)
+            kputc(',', &str);
+        if ( allele_samples[i].l ) {
+            kputs(allele_samples[i].s, &str);
+            free(allele_samples[i].s);
+        } else {
+            kputc('.', &str);
+        }
+    }
+    free(allele_samples);
+    bcf_update_info_string(args.hdr, line, args.asam_tag_string, str.s);
+
+    double p_val = SNPHWE2(n_het, n_ref_hom, n_alt_hom, 0);
+    bcf_update_info_float(args.hdr, line, args.hwe_tag_string, &p_val, 1);
+    
     if ( str.m )
         free(str.s);
     return 0;
