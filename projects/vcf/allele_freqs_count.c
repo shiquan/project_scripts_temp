@@ -26,6 +26,7 @@ struct args {
     const char *af_tag_string;
     const char *asam_tag_string;
     const char *hwe_tag_string;
+    const char *gen_tag_string;
     int output_filetype;
     htsFile *fp_input;
     htsFile *fp_output;
@@ -43,6 +44,7 @@ struct args {
     .af_tag_string = NULL,
     .asam_tag_string = NULL,
     .hwe_tag_string = NULL,
+    .gen_tag_string = NULL,
     .output_filetype = file_is_vcf,
     .fp_input = NULL,
     .fp_output = NULL,
@@ -77,7 +79,7 @@ int usage()
             "     -af   allele frequency tag name, default is AlleleFreq\n"
             "     -hwe  tag name for Fisher exact test of Hardy-Weinberg Equilibrium\n"
             "     -sam  affected sample list for each allele, sample seperated by /\n"
-            //"     -gen  sample counts for homozygous ref, heterozygous and homozygous alts, the format is [AA|Aa|aa]\n"
+            "     -gen  sample counts for homozygous ref, heterozygous and homozygous alts, the format is \"AA | Aa | aa\"\n"
             "     -O    output format [b|z]\n"
             "     -o    output file\n"
             "     -force_skip_uncover  force skip the uncovered positions, default treat as reference\n"
@@ -287,6 +289,8 @@ int parse_args(int argc, char **argv)
             var = &args.hwe_tag_string;
         else if ( strcmp(a, "-v") == 0 )
             var = &version_string;
+        else if ( strcmp(a, "-gen") == 0 )
+            var = &args.gen_tag_string;
         
         if ( var != 0 ) {
             if ( i == argc )
@@ -371,7 +375,9 @@ int parse_args(int argc, char **argv)
 
     if ( args.hwe_tag_string == NULL )
         args.hwe_tag_string = "HWE_p";
-    
+
+    if ( args.gen_tag_string == NULL )
+        args.gen_tag_string = "GenotypeCounts";
     // Update header IDs
     int id;
     id = bcf_hdr_id2int(args.hdr, BCF_DT_ID, args.ac_tag_string);
@@ -412,7 +418,17 @@ int parse_args(int argc, char **argv)
         id = bcf_hdr_id2int(args.hdr, BCF_DT_ID, args.hwe_tag_string);
         assert(bcf_hdr_idinfo_exists(args.hdr, BCF_HL_INFO, id));
     }
-    
+
+    id = bcf_hdr_id2int(args.hdr, BCF_DT_ID, args.gen_tag_string);
+    if ( id == -1 ) {
+        kstring_t str = { 0, 0, 0 };
+        ksprintf(&str, "##INFO=<ID=%s,Number=1,Type=Float,Description=\"Sample counts for genotypes. Format is AA,Aa,aa.\">", args.gen_tag_string);
+        bcf_hdr_append(args.hdr, str.s);
+        bcf_hdr_sync(args.hdr);
+        id = bcf_hdr_id2int(args.hdr, BCF_DT_ID, args.gen_tag_string);
+        assert(bcf_hdr_idinfo_exists(args.hdr, BCF_HL_INFO, id));
+    }
+
     bcf_hdr_write(args.fp_output, args.hdr);
     return 0;
 }
@@ -446,9 +462,9 @@ int generate_freq(bcf1_t *line)
         allele_samples[i].l = allele_samples[i].m = 0;
         allele_samples[i].s = NULL;
     }
-    uint64_t n_ref_hom = 0;
-    uint64_t n_het  = 0;
-    uint64_t n_alt_hom = 0;
+    int32_t n_ref_hom = 0;
+    int32_t n_het  = 0;
+    int32_t n_alt_hom = 0;
     int type;
     for ( i = 0; i < args.n_samples; ++i ) {
         int32_t *b = args.tmp_arr + i*ngt;
@@ -511,9 +527,13 @@ int generate_freq(bcf1_t *line)
     free(allele_samples);
     bcf_update_info_string(args.hdr, line, args.asam_tag_string, str.s);
 
+    str.l = 0;
+    ksprintf(&str,"%d|%d|%d",n_ref_hom, n_het, n_alt_hom);
+    bcf_update_info_string(args.hdr, line, args.asam_tag_string, str.s);
+        
     double p_val = SNPHWE2(n_het, n_ref_hom, n_alt_hom, 0);
     bcf_update_info_float(args.hdr, line, args.hwe_tag_string, &p_val, 1);
-    
+
     if ( str.m )
         free(str.s);
     return 0;
