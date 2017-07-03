@@ -405,7 +405,7 @@ int parse_args(int argc, char **argv)
         ksprintf(&str, "##INFO=<ID=%s,Number=A,Type=String,Description=\"Allele affected samples list.\">", args.asam_tag_string);
         bcf_hdr_append(args.hdr, str.s);
         bcf_hdr_sync(args.hdr);
-        id = bcf_hdr_id2int(args.hdr, BCF_DT_ID, args.af_tag_string);
+        id = bcf_hdr_id2int(args.hdr, BCF_DT_ID, args.asam_tag_string);
         assert(bcf_hdr_idinfo_exists(args.hdr, BCF_HL_INFO, id));
     }
 
@@ -529,7 +529,7 @@ int generate_freq(bcf1_t *line)
 
     str.l = 0;
     ksprintf(&str,"%d|%d|%d",n_ref_hom, n_het, n_alt_hom);
-    bcf_update_info_string(args.hdr, line, args.asam_tag_string, str.s);
+    bcf_update_info_string(args.hdr, line, args.gen_tag_string, str.s);
         
     double p_val = SNPHWE2(n_het, n_ref_hom, n_alt_hom, 0);
     bcf_update_info_float(args.hdr, line, args.hwe_tag_string, &p_val, 1);
