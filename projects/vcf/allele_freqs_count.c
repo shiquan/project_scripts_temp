@@ -422,7 +422,7 @@ int parse_args(int argc, char **argv)
     id = bcf_hdr_id2int(args.hdr, BCF_DT_ID, args.gen_tag_string);
     if ( id == -1 ) {
         kstring_t str = { 0, 0, 0 };
-        ksprintf(&str, "##INFO=<ID=%s,Number=1,Type=Float,Description=\"Sample counts for genotypes. Format is AA,Aa,aa.\">", args.gen_tag_string);
+        ksprintf(&str, "##INFO=<ID=%s,Number=1,Type=String,Description=\"Sample counts for genotypes. Format is AA|Aa|aa.\">", args.gen_tag_string);
         bcf_hdr_append(args.hdr, str.s);
         bcf_hdr_sync(args.hdr);
         id = bcf_hdr_id2int(args.hdr, BCF_DT_ID, args.gen_tag_string);
