@@ -1,1 +1,1 @@
-../../vcfanno/genepred.c
+../../vcfanno/src/genepred.c
