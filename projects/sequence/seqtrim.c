@@ -79,16 +79,17 @@ int parse_args(int argc, char **argv)
     if ( start != NULL) {
         args.trim_start = atoi(start);
         if (args.trim_start < 0)
-            error("Bad start value, %d", args.trim_start);
+            error("Bad start value, should > 0, %d", args.trim_start);
     }
 
     if ( end != NULL) {
         args.trim_end = atoi(end);
-        if ( args.trim_end < 0 )
-            error("Bad end value, %d", args.trim_end);
+        if ( args.trim_end <= 0 )
+            error("Bad end value, should > 0, %d", args.trim_end);
     }
     if (args.trim_end && args.trim_start >= args.trim_end)
-        error("Should set location start smaller than end.");              
+        error("Should set location start smaller than end.");
+    
     return 0;
 }
 int main(int argc, char **argv)
@@ -126,7 +127,7 @@ int main(int argc, char **argv)
         if ( args.trim_start) {
             if ( args.compl == 1 ) {
                 int i;
-                for ( i = seq->seq.l -1 ; i >= 0; --i )
+                for ( i = seq->seq.l -1 ; i >= args.trim_start-1; --i )
                     putchar("TGCAN"[seq2code4(seq->seq.s[i])]);
             } else {
                 fputs(seq->seq.s + args.trim_start -1, stdout);
@@ -136,7 +137,7 @@ int main(int argc, char **argv)
                 putchar('+'); putchar('\n');
                 if ( args.compl == 1 ) {
                     int i;
-                    for ( i = seq->qual.l - 1; i >= 0; --i)
+                    for ( i = seq->qual.l - 1; i >= args.trim_start-1; --i)
                         putchar(seq->qual.s[i]);
                 } else {
                     fputs(seq->qual.s + args.trim_start -1, stdout);
