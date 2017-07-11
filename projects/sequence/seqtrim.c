@@ -115,7 +115,7 @@ int main(int argc, char **argv)
             putchar('\n');
         }
 
-        if ( args.trim_end < seq->seq.l ) {
+        if ( args.trim_end && args.trim_end < seq->seq.l ) {
             seq->seq.s[args.trim_end] = '\0';
             seq->seq.l = args.trim_end;
             if ( seq->qual.l ) {
@@ -124,7 +124,7 @@ int main(int argc, char **argv)
             }
         }
 
-        if ( args.trim_start) {
+        if ( args.trim_start ) {
             if ( args.compl == 1 ) {
                 int i;
                 for ( i = seq->seq.l -1 ; i >= args.trim_start-1; --i )
@@ -147,8 +147,8 @@ int main(int argc, char **argv)
         } else {
             if ( args.compl == 1 ) {
                 int i;
-                for ( i = seq->qual.l - 1; i >= 0; --i)
-                    putchar(seq->qual.s[i]);
+                for ( i = seq->seq.l -1 ; i >= args.trim_start-1; --i )
+                    putchar("TGCAN"[seq2code4(seq->seq.s[i])]);            
             } else {
                 fputs(seq->seq.s, stdout);
             }
