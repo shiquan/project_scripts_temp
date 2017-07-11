@@ -145,7 +145,13 @@ int main(int argc, char **argv)
                 putchar('\n');
             }
         } else {
-            fputs(seq->seq.s, stdout);
+            if ( args.compl == 1 ) {
+                int i;
+                for ( i = seq->qual.l - 1; i >= 0; --i)
+                    putchar(seq->qual.s[i]);
+            } else {
+                fputs(seq->seq.s, stdout);
+            }
             putchar('\n');
             if ( args.print_title && seq->qual.l) {
                 putchar('+'); putchar('\n');
