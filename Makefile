@@ -1,4 +1,4 @@
-PROG=  mk allele_freqs
+PROG=  mk allele_freqs seqtrim
 
 all: $(PROG)
 
@@ -36,9 +36,12 @@ force:
 mk: pkg_version.h $(HTSLIB)
 	-mkdir -p bin
 
-allele_freqs:
+allele_freqs:	
 	$(CC) $(CFLAGS) $(DFLAGS) $(INCLUDES) -o bin/allele_freqs_count projects/vcf/allele_freqs_count.c $(HTSLIB)
 
+
+seqtrim:
+	$(CC) $(CFLAGS) $(DFLAGS) $(INCLUDES) -o bin/seqtrim projects/sequence/seqtrim.c lib/sequence.c $(HTSLIB)
 
 clean: testclean
 	-rm -f gmon.out *.o *~ $(PROG) pkg_version.h  version.h

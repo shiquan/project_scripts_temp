@@ -10,7 +10,8 @@ int check_stop_codon(char *seq, char *p_end )
 {
     char *ss = seq;
     char *se = p_end;
-    int i, l;
+    int i, l = 0;
+    
     if ( se == NULL ) {
         for ( se = ss; se != NULL && *se; ++se, ++l );        
     }
