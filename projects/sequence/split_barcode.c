@@ -195,9 +195,9 @@ static int load_barcode_file(const char *fn, struct barcode *bc)
         struct name *name = &bc->names[bc->n];
         int k;
         for ( k = 0; k < bc->n; ++k) {
-            if ( strncmp(bc->names[k].barcode, string.s+i, j-i) == 0 ||
+            if ( strncmp(bc->names[k].barcode, string.s+i+1, j-i) == 0 ||
                  strncmp(bc->names[k].name, string.s, i) == 0 ) {
-                error_print("Duplicated barcode lines. %s, %s", string.s, string.s+i);
+                error_print("Duplicated barcode lines. %s, %s", string.s, string.s+i+1);
                 break;
             }
         }
