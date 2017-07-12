@@ -1,4 +1,4 @@
-PROG=  mk allele_freqs seqtrim
+PROG=  mk allele_freqs seqtrim split_barcode
 
 all: $(PROG)
 
@@ -39,9 +39,11 @@ mk: pkg_version.h $(HTSLIB)
 allele_freqs:	
 	$(CC) $(CFLAGS) $(DFLAGS) $(INCLUDES) -o bin/allele_freqs_count projects/vcf/allele_freqs_count.c $(HTSLIB)
 
-
 seqtrim:
 	$(CC) $(CFLAGS) $(DFLAGS) $(INCLUDES) -o bin/seqtrim projects/sequence/seqtrim.c lib/sequence.c $(HTSLIB)
+
+split_barcode:
+	$(CC) $(CFLAGS) $(DFLAGS) $(INCLUDES) -o bin/split_barcode projects/sequence/split_barcode.c lib/number.c $(HTSLIB)
 
 clean: testclean
 	-rm -f gmon.out *.o *~ $(PROG) pkg_version.h  version.h

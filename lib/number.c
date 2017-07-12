@@ -261,7 +261,7 @@ double force2num_l(char *str, int l)
     int base = 0;
     base = get_numbase_l(str, l);
     char *temp = strndup(str, l);
-    char *pend;
+    //char *pend;
     if ( base == 10 )  {
         int b = strtod(temp, NULL );
         free(temp);
