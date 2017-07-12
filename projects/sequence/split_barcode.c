@@ -202,7 +202,7 @@ static int load_barcode_file(const char *fn, struct barcode *bc)
             }
         }
         if ( k == bc->n ) {            
-            name->barcode = strndup(string.s+i, string.l-i);
+            name->barcode = strndup(string.s+i+1, string.l-i);
             name->name = strndup(string.s, i);
             bc->n++;
         }        
@@ -316,9 +316,9 @@ int split_barcode()
     free(temp.s);
 
     // check barcodes
-    int read_flag = args.barcode_region[0] == 1 ? 1 : 2;    
+    int read_flag = args.barcode_region[0] == '1' ? 1 : 2;    
     int length;
-    length = args.end - args.start;
+    length = args.end - args.start+1;
     assert(length > 0 );
     // SE
     if ( seq2 == NULL ) {        
@@ -334,7 +334,7 @@ int split_barcode()
             }
             for ( i = 0; i < args.barcode.n; ++i ) {
                 struct name *name = &args.barcode.names[i];
-                int mismatch = check_match(seq1->seq.s+args.start,name->barcode, args.mismatch, length);
+                int mismatch = check_match(seq1->seq.s+args.start-1, name->barcode, args.mismatch, length);
                 if ( mismatch == -1 )
                     continue;
                 if ( bgzf_write(name->fp1, string.s, string.l) != string.l)
@@ -371,9 +371,9 @@ int split_barcode()
                 struct name *name = &args.barcode.names[i];
                 int mis;
                 if ( read_flag == 1 )
-                    mis = check_match(seq1->seq.s+args.start, name->barcode, args.mismatch, length);
+                    mis = check_match(seq1->seq.s+args.start-1, name->barcode, args.mismatch, length);
                 else
-                    mis = check_match(seq2->seq.s+args.start, name->barcode, args.mismatch, length);
+                    mis = check_match(seq2->seq.s+args.start-1, name->barcode, args.mismatch, length);
                 if ( mis == -1 )
                     continue;
                 if ( bgzf_write(name->fp1, string1.s, string1.l) != string1.l)
