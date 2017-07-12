@@ -352,7 +352,7 @@ int split_barcode()
         kstring_t string2 = {0, 0, 0};
         while ( (l1 = kseq_read(seq1)) >=0 && (l2 = kseq_read(seq2)) >= 0) {
             // check the read name
-            for ( i = 0; i < seq1->name.l; ++i )
+            for ( i = 0; i < seq1->name.l-1; ++i )
                 if ( seq1->name.s[i] != seq2->name.s[i])
                     error("Inconsistant read name. %s vs %s.", seq1->name.s, seq2->name.s);
             
