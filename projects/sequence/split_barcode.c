@@ -124,12 +124,12 @@ static int parse_args(int ac, char **av)
 
     int l;
     l = strlen(args.barcode_region);
-    if ( l > 4 && (args.barcode_region[0] == 1 || args.barcode_region[0] == 2) && args.barcode_region[1] == ':') {
+    if ( l > 4 && (args.barcode_region[0] == '1' || args.barcode_region[0] == '2') && args.barcode_region[1] == ':') {
         for ( i = 2; i < l; ++i )
             if ( args.barcode_region[i] == '-')
                 break;
         args.start = str2int_l((char*)args.barcode_region+2, i - 2);
-        args.end = str2int_l((char*)args.barcode_region+i, l -i);
+        args.end = str2int_l((char*)args.barcode_region+i+1, l -i);
         if ( args.start < 1 || args.end < 1 )
             error("Barcode region unsupport. %d-%d", args.start, args.end);
     } else {
@@ -169,7 +169,7 @@ static int load_barcode_file(const char *fn, struct barcode *bc)
             }
         }
         if ( i == string.l )
-            error("Failed to parse barcode file: %s", string.s);
+            error("Failed to parse barcode file: %s", args.barcode_file);
         
         for ( j = i; j < string.l; ++j ) {
             switch (string.s[j]) {
