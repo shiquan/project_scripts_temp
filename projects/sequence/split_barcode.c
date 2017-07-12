@@ -201,7 +201,7 @@ static int load_barcode_file(const char *fn, struct barcode *bc)
                 break;
             }
         }
-        if ( k < bc->n ) {            
+        if ( k == bc->n ) {            
             name->barcode = strndup(string.s+i, string.l-i);
             name->name = strndup(string.s, i);
             bc->n++;
