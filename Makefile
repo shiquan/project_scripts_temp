@@ -4,7 +4,12 @@ all: $(PROG)
 
 HTSDIR = htslib-1.4.1
 include $(HTSDIR)/htslib.mk
+include $(HTSDIR)/htslib_static.mk
 HTSLIB = $(HTSDIR)/libhts.a
+BGZIP  = $(HTSDIR)/bgzip
+TABIX  = $(HTSDIR)/tabix
+HTSLIB_LDFLAGS = $(HTSLIB_static_LDFLAGS)
+HTSLIB_LIBS = $(HTSLIB_static_LIBS)
 
 ifeq "$(shell uname -s)" "Darwin"
 DYNAMIC_FLAGS = -Wl,-export_dynamic
