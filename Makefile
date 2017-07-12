@@ -6,12 +6,17 @@ HTSDIR = htslib-1.4.1
 include $(HTSDIR)/htslib.mk
 HTSLIB = $(HTSDIR)/libhts.a
 
+ifeq "$(shell uname -s)" "Darwin"
+DYNAMIC_FLAGS = -Wl,-export_dynamic
+else
+DYNAMIC_FLAGS = -rdynamic
+endif
+
 CC       = gcc
 CFLAGS   = -Wall -O3
 DEBUG_CFLAGS   = -g -Wall -O0
-DFLAGS   = -lz -lm -lbz2 -llzma
+DFLAGS   = -lz -lm -lbz2 -llzma $(DYNAMIC_FLAGS)
 INCLUDES = -Iinclude/ -I. -I$(HTSDIR)/
-
 
 all:$(PROG)
 
