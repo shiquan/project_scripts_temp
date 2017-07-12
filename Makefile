@@ -9,7 +9,7 @@ HTSLIB = $(HTSDIR)/libhts.a
 CC       = gcc
 CFLAGS   = -Wall -O3
 DEBUG_CFLAGS   = -g -Wall -O0
-DFLAGS   = -lz -lbz2 -llzma -pthread
+DFLAGS   = -lz -lm -lbz2 -llzma
 INCLUDES = -Iinclude/ -I. -I$(HTSDIR)/
 
 
@@ -36,8 +36,11 @@ force:
 mk: pkg_version.h $(HTSLIB)
 	-mkdir -p bin
 
-allele_freqs:	
-	$(CC) $(CFLAGS) $(DFLAGS) $(INCLUDES) -o bin/allele_freqs_count projects/vcf/allele_freqs_count.c $(HTSLIB)
+allele_freqs.o:  projects/vcf/allele_freqs_count.c 
+	$(CC) $(CFLAGS) $(INCLUDES) -c -o $@ $^ 
+
+allele_freqs: allele_freqs.o
+	$(CC) $(CFLAGS) $(DFLAGS) $(INCLUDES) -o bin/allele_freqs_count allele_freqs.o $(HTSLIB)
 
 seqtrim:
 	$(CC) $(CFLAGS) $(DFLAGS) $(INCLUDES) -o bin/seqtrim projects/sequence/seqtrim.c lib/sequence.c $(HTSLIB)
