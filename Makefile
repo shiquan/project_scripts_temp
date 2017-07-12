@@ -20,7 +20,7 @@ endif
 CC       = gcc
 CFLAGS   = -Wall -Wc++-compat -O2
 DEBUG_CFLAGS   = -g -Wall -O0
-DFLAGS   = -lz -lm -lbz2 -llzma -pthread $(DYNAMIC_FLAGS)
+DFLAGS   = -lz -lm -lbz2 -llzma -lcrypto -lcurl -pthread $(DYNAMIC_FLAGS)
 INCLUDES = -Iinclude/ -I. -I$(HTSDIR)/
 
 all:$(PROG)
