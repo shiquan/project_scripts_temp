@@ -171,7 +171,7 @@ static int load_barcode_file(const char *fn, struct barcode *bc)
         if ( i == string.l )
             error("Failed to parse barcode file: %s", args.barcode_file);
         
-        for ( j = i; j < string.l; ++j ) {
+        for ( j = i+1; j < string.l; ++j ) {
             switch (string.s[j]) {
                 case 'a':
                 case 'A':
