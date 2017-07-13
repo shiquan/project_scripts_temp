@@ -22,8 +22,10 @@ int usage()
             "    -out       // output directory.\n"
             "\nAbout the barcode file, it should consist of barcode name and barcode sequences columns, and\n"
             "seperated by tab.\n"
+            "Version: %s"
             "Homepage: \n"
-            "https://github.com/shiquan/small_projects\n"
+            "https://github.com/shiquan/small_projects\n",
+            PROJECTS_VERSION
         );
     return 1;
 }
