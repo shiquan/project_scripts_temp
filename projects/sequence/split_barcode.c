@@ -350,7 +350,11 @@ int split_barcode()
     } else { // PE
         kstring_t string1 = {0, 0, 0};
         kstring_t string2 = {0, 0, 0};
-        while ( (l1 = kseq_read(seq1)) >=0 && (l2 = kseq_read(seq2)) >= 0) {
+        do {
+            l1 = kseq_read(seq1);
+            l2 = kseq_read(seq2);
+            if ( l1 < 0 || l2 < 0 )
+                break;
             // check the read name
             for ( i = 0; i < seq1->name.l-1; ++i )
                 if ( seq1->name.s[i] != seq2->name.s[i])
@@ -388,8 +392,8 @@ int split_barcode()
                     error("Write error : %d", args.failed_2->errcode);                            
             }
 
-        }
-        if (l1 < 0 || l2 < 0 )
+        } while (1);
+        if ( l1 != l2  )
             error("Inconsistant read records. %d vs %d",l1, l2);
     }
 
