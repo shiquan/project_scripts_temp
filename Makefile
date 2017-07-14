@@ -46,7 +46,7 @@ force:
 mk: pkg_version.h $(HTSLIB)
 	-mkdir -p bin
 
-allele_freqs: allele_freqs.o
+allele_freqs:
 	$(CC) $(CFLAGS) $(DFLAGS) $(INCLUDES) -o bin/allele_freqs_count projects/vcf/allele_freqs_count.c  $(HTSLIB)
 
 seqtrim:

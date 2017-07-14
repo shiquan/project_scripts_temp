@@ -178,7 +178,7 @@ int parse_UMI()
 
     int length = args.umi.end - args.umi.start +1;
     
-    if ( seq2 != NULL ) {
+    if ( seq2 == NULL ) {
         if ( args.umi.id == 2)
             error("Inconsistant UMI region. %s", args.umi_reg);
         
@@ -201,12 +201,12 @@ int parse_UMI()
             if ( args.umi.start == 1 ) 
                 kputs(seq1->seq.s+args.umi.end, &string);
             else
-                kputsn(seq1->seq.s, args.umi.start, &string);
-            kputs("\n+", &string);
+                kputsn(seq1->seq.s, args.umi.start-1, &string);
+            kputs("\n+\n", &string);
             if ( args.umi.start == 1 ) 
                 kputs(seq1->qual.s+args.umi.end, &string);
             else
-                kputsn(seq1->qual.s, args.umi.start, &string);
+                kputsn(seq1->qual.s, args.umi.start-1, &string);
             kputc('\n', &string);            
         
             if ( bgzf_write(out1, string.s, string.l) != string.l )
@@ -238,17 +238,18 @@ int parse_UMI()
                 kputs(seq1->name.s, &str1);
                 if ( str1.s[str1.l-2] == '/' && str1.s[str1.l-1] == '1')
                     str1.l -= 2;
+                kputs("_UID:",&str1);
                 kputsn(seq1->seq.s+args.umi.start-1, length, &str1);
                 kputc('\n', &str1);
                 if ( args.umi.start == 1 ) 
                     kputs(seq1->seq.s+args.umi.end, &str1);
                 else
-                    kputsn(seq1->seq.s, args.umi.start, &str1);
-                kputs("\n+", &str1);
+                    kputsn(seq1->seq.s, args.umi.start-1, &str1);
+                kputs("\n+\n", &str1);
                 if ( args.umi.start == 1 ) 
                     kputs(seq1->qual.s+args.umi.end, &str1);
                 else
-                    kputsn(seq1->qual.s, args.umi.start, &str1);
+                    kputsn(seq1->qual.s, args.umi.start-1, &str1);
                 kputc('\n', &str1);            
 
                 kputc('@', &str2);
@@ -264,6 +265,7 @@ int parse_UMI()
                 kputs(seq1->name.s, &str1);
                 if ( str1.s[str1.l-2] == '/' && str1.s[str1.l-1] == '1')
                     str1.l -= 2;
+                kputs("_UID:",&str1);
                 kputsn(seq2->seq.s+args.umi.start-1, length, &str1);
                 kputc('\n', &str1);
                 ksprintf(&str1, "%s\n+\n%s\n", seq1->seq.s, seq1->qual.s);
@@ -272,17 +274,18 @@ int parse_UMI()
                 kputs(seq2->name.s, &str2);
                 if ( str2.s[str2.l-2] == '/' && str2.s[str2.l-1] == '2')
                     str2.l -= 2;
+                kputs("_UID:",&str2);
                 kputsn(seq2->seq.s+args.umi.start-1, length, &str2);
                 kputc('\n', &str2);
                 if ( args.umi.start == 1 ) 
                     kputs(seq2->seq.s+args.umi.end, &str2);
                 else
-                    kputsn(seq2->seq.s, args.umi.start, &str2);
-                kputs("\n+", &str2);
+                    kputsn(seq2->seq.s, args.umi.start-1, &str2);
+                kputs("\n+\n", &str2);
                 if ( args.umi.start == 1 ) 
                     kputs(seq2->qual.s+args.umi.end, &str2);
                 else
-                    kputsn(seq2->qual.s, args.umi.start, &str2);
+                    kputsn(seq2->qual.s, args.umi.start-1, &str2);
                 kputc('\n', &str2);            
             }
             if ( bgzf_write(out1, str1.s, str1.l) != str1.l )
