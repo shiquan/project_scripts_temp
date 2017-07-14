@@ -1,4 +1,4 @@
-PROG=  mk allele_freqs seqtrim split_barcode
+PROG=  mk allele_freqs seqtrim split_barcode umi_parser
 
 all: $(PROG)
 
@@ -46,17 +46,17 @@ force:
 mk: pkg_version.h $(HTSLIB)
 	-mkdir -p bin
 
-allele_freqs.o:  projects/vcf/allele_freqs_count.c 
-	$(CC) $(CFLAGS) $(INCLUDES) -c -o $@ $^ 
-
 allele_freqs: allele_freqs.o
-	$(CC) $(CFLAGS) $(DFLAGS) $(INCLUDES) -o bin/allele_freqs_count allele_freqs.o $(HTSLIB)
+	$(CC) $(CFLAGS) $(DFLAGS) $(INCLUDES) -o bin/allele_freqs_count projects/vcf/allele_freqs_count.c  $(HTSLIB)
 
 seqtrim:
 	$(CC) $(CFLAGS) $(DFLAGS) $(INCLUDES) -o bin/seqtrim projects/sequence/seqtrim.c lib/sequence.c $(HTSLIB)
 
 split_barcode:
 	$(CC) $(CFLAGS) $(DFLAGS) $(INCLUDES) -o bin/split_barcode projects/sequence/split_barcode.c lib/number.c $(HTSLIB)
+
+umi_parser:
+	$(CC) $(CFLAGS) $(DFLAGS) $(INCLUDES) -o bin/umi_parser projects/sequence/umi_parser.c lib/number.c $(HTSLIB)	
 
 clean: testclean
 	-rm -f gmon.out *.o *~ $(PROG) pkg_version.h  version.h
