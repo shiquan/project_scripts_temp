@@ -215,6 +215,8 @@ int parse_UMI()
 
         if ( string.m )
             free(string.s);
+        bgzf_close(out1);
+        kseq_destroy(seq1);
         
     } else {
         kstring_t str1 = { 0, 0, 0};
@@ -295,22 +297,24 @@ int parse_UMI()
                 error("Write error : %d", out2->errcode);
 
         } while(1);
+        
         if ( str1.m )
             free(str1.s);
         if ( str2.m)
             free(str2.s);
+        bgzf_close(out1);
+        bgzf_close(out2);
+        kseq_destroy(seq1);
+        kseq_destroy(seq2);
+        if (l1 != l2)
+            error("Inconsistant read counts. %s vs %s.", args.input1_fname, args.input2_fname);
     }
 
-    bgzf_close(out1);
-    bgzf_close(out2);
     if ( args.str1.m)
         free(args.str1.s);
     if ( args.str2.m)
         free(args.str2.s);
 
-    kseq_destroy(seq1);
-    if ( seq2 )
-        kseq_destroy(seq2);
     return 0;
 }
 int main (int argc, char **argv)
