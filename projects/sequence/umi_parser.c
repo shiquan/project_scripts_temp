@@ -225,8 +225,8 @@ int parse_UMI()
             l2 = kseq_read(seq2);
             if ( l1 < 0 || l2 < 0 )
                 break;
-
-                        for ( i = 0; i < seq1->name.l-1; ++i )
+            
+            for ( i = 0; i < seq1->name.l-1; ++i )
                 if ( seq1->name.s[i] != seq2->name.s[i])
                     error("Inconsistant read name. %s vs %s.", seq1->name.s, seq2->name.s);
             
@@ -286,14 +286,14 @@ int parse_UMI()
                     kputs(seq2->qual.s+args.umi.end, &str2);
                 else
                     kputsn(seq2->qual.s, args.umi.start-1, &str2);
-                kputc('\n', &str2);            
+                kputc('\n', &str2);
             }
             if ( bgzf_write(out1, str1.s, str1.l) != str1.l )
                 error("Write error : %d", out1->errcode);
 
             if ( bgzf_write(out2, str2.s, str2.l) != str2.l )
                 error("Write error : %d", out2->errcode);
-            
+
         } while(1);
         if ( str1.m )
             free(str1.s);
@@ -301,6 +301,8 @@ int parse_UMI()
             free(str2.s);
     }
 
+    bgzf_close(out1);
+    bgzf_close(out2);
     if ( args.str1.m)
         free(args.str1.s);
     if ( args.str2.m)
