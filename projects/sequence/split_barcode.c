@@ -341,6 +341,7 @@ int split_barcode()
                     continue;
                 if ( bgzf_write(name->fp1, string.s, string.l) != string.l)
                     error("Write error : %d", name->fp1->errcode);
+                break;
             }
             if ( i == args.barcode.n)
                 if ( bgzf_write(args.failed_1, string.s, string.l) != string.l)
@@ -386,6 +387,7 @@ int split_barcode()
                     error("Write error : %d", name->fp1->errcode);
                 if ( bgzf_write(name->fp2, string2.s, string2.l) != string2.l)
                     error("Write error : %d", name->fp2->errcode);
+                break;
             }
             if ( i == args.barcode.n) {
                 if ( bgzf_write(args.failed_1, string1.s, string1.l) != string1.l)
