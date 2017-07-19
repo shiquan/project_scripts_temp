@@ -1,4 +1,4 @@
-PROG=  mk allele_freqs seqtrim split_barcode umi_parser
+PROG=  mk allele_freqs seqtrim split_barcode umi_parser dyncut_adaptor
 
 all: $(PROG)
 
@@ -53,10 +53,13 @@ seqtrim:
 	$(CC) $(CFLAGS) $(DFLAGS) $(INCLUDES) -o bin/seqtrim projects/sequence/seqtrim.c lib/sequence.c $(HTSLIB)
 
 split_barcode:
-	$(CC) $(CFLAGS) $(DFLAGS) $(INCLUDES) -o bin/split_barcode projects/sequence/split_barcode.c lib/number.c $(HTSLIB)
+	$(CC) $(CFLAGS) $(DFLAGS) $(INCLUDES) -o bin/split_barcode projects/sequence/split_barcode.c lib/number.c lib/fastq.c $(HTSLIB)
 
 umi_parser:
 	$(CC) $(CFLAGS) $(DFLAGS) $(INCLUDES) -o bin/umi_parser projects/sequence/umi_parser.c lib/number.c $(HTSLIB)	
+
+dyncut_adaptor:
+	$(CC) $(CFLAGS) $(DFLAGS) $(INCLUDES) -o bin/dyncut_adaptor projects/sequence/dyncut_adaptor_trim_uid.c lib/number.c lib/fastq.c $(HTSLIB)
 
 clean: testclean
 	-rm -f gmon.out *.o *~ $(PROG) pkg_version.h  version.h

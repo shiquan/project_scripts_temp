@@ -5,6 +5,7 @@
 #include "htslib/bgzf.h"
 #include <zlib.h>
 #include "number.h"
+#include "fastq.h"
 #include "pkg_version.h"
 
 KSEQ_INIT(gzFile, gzread)
@@ -30,16 +31,6 @@ int usage()
     return 1;
 }
 
-struct name {
-    char *barcode;
-    char *name;
-    BGZF *fp1;
-    BGZF *fp2;
-};
-struct barcode {
-    int n, m;
-    struct name *names;
-};
 struct args {
     const char *barcode_file;
     const char *output_dir;
@@ -137,94 +128,16 @@ static int parse_args(int ac, char **av)
     } else {
         error("-reg does not look like the supported format. %s", args.barcode_region);
     }
-    
-    return 0;
-}
-static int check_match(char *seq1, char *seq2, int mismatch, int length) {
-    int i;
-    int m = 0;
-    for ( i = 0; i < length; ++i ) {
-        if ( seq1[i] != seq2[i] ) {
-            m++;
-            if ( m > mismatch )
-                return -1;
-        }
-    }
-    return mismatch;
-}
-static int load_barcode_file(const char *fn, struct barcode *bc)
-{
-    BGZF *fp = bgzf_open(fn, "r");
-    if ( fp == NULL )
-        error("%s : %s", fn, strerror(errno));
-
-    kstring_t string = {0, 0, 0};
-
-    do {
-        if ( bgzf_getline(fp, '\n', &string) < 0 )
-            break;
-        int i, j;
-        for ( i = 0; i < string.l; ++i ) {
-            if ( string.s[i] == '\t') {
-                string.s[i] = '\0';
-                break;
-            }
-        }
-        if ( i == string.l )
-            error("Failed to parse barcode file: %s", args.barcode_file);
-        
-        for ( j = i+1; j < string.l; ++j ) {
-            switch (string.s[j]) {
-                case 'a':
-                case 'A':
-                case 'c':
-                case 'C':
-                case 'g':
-                case 'G':
-                case 't':
-                case 'T':
-                case 'n':
-                case 'N':
-                    continue;
-                default:
-                    error("Unsupport barcode sequence. %s", string.s);
-            }
-        }
-        if ( bc->n == bc->m ) {
-            bc->m = bc->n+8;
-            bc->names = (struct name*)realloc(bc->names, bc->m *sizeof(struct name));
-        }
-        struct name *name = &bc->names[bc->n];
-        int k;
-        for ( k = 0; k < bc->n; ++k) {
-            if ( strncmp(bc->names[k].barcode, string.s+i+1, j-i) == 0 ||
-                 strncmp(bc->names[k].name, string.s, i) == 0 ) {
-                error_print("Duplicated barcode lines. %s, %s", string.s, string.s+i+1);
-                break;
-            }
-        }
-        if ( k == bc->n ) {            
-            name->barcode = strndup(string.s+i+1, string.l-i);
-            name->name = strndup(string.s, i);
-            bc->n++;
-        }        
-    } while (1);
-    
-    if ( bc->n == 0 )
+    if ( load_barcode_file(args.barcode_file, &args.barcode) ) {
+        error_print("Failed to load barcode file.");
         return 1;
-
-    free(string.s);
-    bgzf_close(fp);    
+    }    
+   
     return 0;
 }
 
 int split_barcode()
 {
-    if ( load_barcode_file(args.barcode_file, &args.barcode) ) {
-        error_print("Failed to load barcode file.");
-        return 1;
-    }    
-
     int i;
     int l1, l2;
     int file_is_fastq;

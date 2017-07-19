@@ -369,7 +369,7 @@ struct bed_chrom *bed_chrom_dup(struct bed_chrom *_chm)
 struct bedaux *bed_dup(struct bedaux *_bed)
 {
     if ( _bed->flag & bed_bit_cached )
-	error("[bed_dup]bedaux  should be filledTrying to fork a cached bed struct ..");
+	error("[bed_dup]bedaux  should be filled. Trying to fork a cached bed struct ..");
     struct bedaux *bed = bedaux_init();
     bed->flag = _bed->flag;
     bed->fname = _bed->fname;
