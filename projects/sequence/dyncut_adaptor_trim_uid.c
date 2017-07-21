@@ -14,17 +14,23 @@ int usage()
             "Trim adaptor pollution sequence and rename read id with UID.\n"
             "dyncut_adaptor [options] read1.fq [read2.fq]\n"
             "\n"
-            "Options :\n"
+            "Commom options :\n"
             "    -adaptor      adaptor pollution sequences for read 1, should be complementary with R2 sequencing primer in BGISEQ500 platform\n"
+            "    -mis_ada      mismatch allowed in the adaptor sequence alignment\n"
+            "    -min_length   minimual sequence length for trimmed reads\n"
+            "    -report       specify report file instead of print to stdout\n"            
+            "    -dropr2       drop R2 fastq file adaptor pollution is detected in R1\n"
+            "\n"
+            "Barcode split mode options:\n"
             "    -barcode      barcode file, consist of the barcode name and the sequence columns\n"
             "    -out          output directory\n"
-            "    -mis_ada      mismatch allowed in the adaptor sequence alignment\n"
             "    -mis_bar      mismatch allowed in the barcode sequence alignment [0-3]\n"
-            "    -min_length   minimual sequence length for trimmed reads\n"
-            "    -report       specify report file instead of print to stdout\n"
             "    -uid          rename read id with extra barcode tag\n"
-            "    -dropr2       drop R2 fastq file adaptor pollution is detected in R1\n"
+            "\n"
+            "Trim adaptor mode options:\n"
             "    -trim         trim ends even if partly adaptor detected, conflict with -uid and -barcode\n"
+            "    -out1         output file for trim read1 [trim adaptor mode] or failed read1[barcode split mode]\n"
+            "    -out2         output file for trim read2 [trim adaptor mode] or failed read2[barcode split mode]\n"
             "\n"
             "Version : %s"
             "Homepage : https://github.com/shiquan/small_projects\n",
@@ -49,6 +55,8 @@ struct args {
     int drop_read2;
     const char *read1_file;
     const char *read2_file;
+    const char *out1;
+    const char *out2;
     BGZF *failed_1;
     BGZF *failed_2;
     const char *report;
@@ -66,6 +74,8 @@ struct args {
     .read1_file = NULL,
     .read2_file = NULL,
     .drop_read2 = 0,
+    .out1 = NULL,
+    .out2 = NULL,
     .failed_1 = NULL,
     .failed_2 = NULL,
     .report = NULL,
@@ -101,7 +111,11 @@ int parse_args(int argc, char **argv)
             var = &minimual_length;
         else if ( strcmp(a, "-report") == 0 && args.report == NULL )
             var = &args.report;
-
+        else if ( strcmp(a, "-out1") == 0 && args.out1 == NULL )
+            var = &args.out1;
+        else if ( strcmp(a, "-out2") == 0 && args.out2 == NULL )
+            var = &args.out2;
+        
         if ( var != 0 ) {
             if ( i == argc ) {
                 error_print("Miss an argument after %s.", a);
@@ -150,18 +164,21 @@ int parse_args(int argc, char **argv)
 
     if ( minimual_length )
         args.minimual_length = str2int((char*)minimual_length);
+    if ( args.barcode_fname ) {
+        if ( load_barcode_file(args.barcode_fname, &args.barcode) ) {
+            error_print("Failed to load barcode file.");
+            return 1;
+        }
+    } 
     
-    if ( load_barcode_file(args.barcode_fname, &args.barcode) ) {
-        error_print("Failed to load barcode file.");
-        return 1;
-    }    
     return 0;
 }
 
 #define STR_INIT {0, 0, 0}
 
-// trim adaptor pollution sequences and export read1 fastq file into output directory
-int trim_adaptor()
+// trim adaptor mode
+// trim adaptor pollution sequences and export read1 fastq file into output Directory
+int trim_adaptor_barcode()
 {    
     int l1, l2;
     int i;
@@ -214,38 +231,60 @@ int trim_adaptor()
                 error("%s : %s.", string.s, strerror(errno));            
         }
     }
-    do {
-            string.l = 0;
-            if ( args.output_dir )
+
+    do
+    {
+        string.l = 0;        
+        if ( args.output_dir ) {
+            if ( args.out1 ) {
+                ksprintf(&string, "%s/%s", args.output_dir, args.out1);
+            } else {
                 ksprintf(&string, "%s/untrimmed_1.%s.gz", args.output_dir, file_is_fastq == 0 ? "fq" : "fa");
-            else
+            }
+        } else {
+            if ( args.out1 ) {
+                kputs(args.out1, &string);
+            } else {
                 ksprintf(&string, "untrimmed_1.%s.gz", file_is_fastq == 0 ? "fq" : "fa");
-            args.failed_1 = bgzf_open(string.s, "w");
-            if ( args.failed_1 == NULL )
-                error("%s : %s.", string.s, strerror(errno));
+            }
+        }
+        args.failed_1 = bgzf_open(string.s, "w");
+        if ( args.failed_1 == NULL )
+            error("%s : %s.", string.s, strerror(errno));
             
-            if ( args.read2_file == NULL || args.drop_read2 == 0)
-                break;
-            string.l = 0;
-            if ( args.output_dir )
+        if ( args.read2_file == NULL || args.drop_read2 == 0)
+            break;
+        string.l = 0;
+
+        if ( args.output_dir ) {
+            if ( args.out2 ) {
+                ksprintf(&string, "%s/%s", args.output_dir, args.out2);
+            } else {
                 ksprintf(&string, "%s/untrimmed_2.%s.gz", args.output_dir, file_is_fastq == 0 ? "fq" : "fa");
-            else
+            }
+        } else {
+            if ( args.out2 ) {
+                kputs(args.out2, &string);
+            } else {
                 ksprintf(&string, "untrimmed_2.%s.gz", file_is_fastq == 0 ? "fq" : "fa");
-            args.failed_2 = bgzf_open(string.s, "w");
-            if ( args.failed_2 == NULL )
-                error("%s : %s.", string.s, strerror(errno));
+            }
+        }
+            
+        args.failed_2 = bgzf_open(string.s, "w");
+        if ( args.failed_2 == NULL )
+            error("%s : %s.", string.s, strerror(errno));
+            
     } while ( 0 );
     
     if ( args.read2_file == NULL ) {
         // TODO : improve the efficient of this function.
         // complexity of this function is O(n*k*(m-l)), n is reads count, k is the barcode count, m is the read length, and  l is the adaptor length
         BGZF *fp = NULL;
-        do {
+        do
+        {
             l1 = kseq_read(seq1);
-            if ( l1 < 0 )
-                break;
-            if ( l1 == 0 )
-                continue;
+            if ( l1 < 0 ) break;                
+            if ( l1 == 0 ) continue;                
             int check_length = l1 - args.adaptor_length;
             string.l = 0;
             for ( i = 0; i <  check_length; ++i ) {
@@ -270,43 +309,24 @@ int trim_adaptor()
                         // export trimmed fastqs
                         if ( args.rename_uid_flag == 1 ) {
                             if ( file_is_fastq == 0 ) {
-                                kputc('@', &string);
-                                kputs(seq1->name.s, &string);
-                                if ( string.s[string.l-2] == '/' && string.s[string.l-1] == '1')
-                                    string.l -= 2;
-                                kputs("_UID:",&string);
-                                kputsn(seq1->seq.s+i+args.adaptor_length, l, &string);
-                                kputc('\n', &string);
-                                kputsn(seq1->seq.s, i, &string);                            
-                                kputs("\n+\n", &string);
-                                kputsn(seq1->qual.s, i, &string);
-                                kputc('\n', &string);
+                                kputc('@', &string); kputs(seq1->name.s, &string);                                
+                                if ( string.s[string.l-2] == '/' && string.s[string.l-1] == '1') string.l -= 2;
+                                kputs("_UID:",&string); kputsn(seq1->seq.s+i+args.adaptor_length, l, &string);                                
+                                kputc('\n', &string); kputsn(seq1->seq.s, i+1, &string);
+                                kputs("\n+\n", &string);kputsn(seq1->qual.s, i+1, &string);kputc('\n', &string);
                             } else {
-                                kputc('>', &string);
-                                kputs(seq1->name.s, &string);
-                                if ( string.s[string.l-2] == '/' && string.s[string.l-1] == '1')
-                                    string.l -= 2;
-                                kputs("_UID:",&string);
-                                kputsn(seq1->seq.s+i+args.adaptor_length, l, &string);
-                                kputc('\n', &string);
-                                kputsn(seq1->seq.s, i, &string);                            
-                                kputc('\n', &string);                                
+                                kputc('>', &string); kputs(seq1->name.s, &string);                                
+                                if ( string.s[string.l-2] == '/' && string.s[string.l-1] == '1') string.l -= 2;                                    
+                                kputs("_UID:",&string); kputsn(seq1->seq.s+i+args.adaptor_length, l, &string);
+                                kputc('\n', &string); kputsn(seq1->seq.s, i+1, &string); kputc('\n', &string);                                
                             }
                         } else {
                             if ( file_is_fastq == 0 ) {
-                                kputc('@', &string);
-                                kputs(seq1->name.s, &string);
-                                kputc('\n', &string);
-                                kputsn(seq1->seq.s, i, &string);
-                                kputs("\n+\n", &string);
-                                kputsn(seq1->qual.s, i, &string);
-                                kputc('\n', &string);
+                                kputc('@', &string); kputs(seq1->name.s, &string); kputc('\n', &string);
+                                kputsn(seq1->seq.s, i+1, &string); kputs("\n+\n", &string); kputsn(seq1->qual.s, i+1, &string); kputc('\n', &string);
                             } else {
-                                kputc('>', &string);
-                                kputs(seq1->name.s, &string);
-                                kputc('\n', &string);
-                                kputsn(seq1->seq.s, i, &string);
-                                kputc('\n', &string);
+                                kputc('>', &string); kputs(seq1->name.s, &string); kputc('\n', &string);
+                                kputsn(seq1->seq.s, i+1, &string); kputc('\n', &string);
                             }
                         } // end parse uid
                         fp = name->fp1;
@@ -342,14 +362,11 @@ int trim_adaptor()
         kstring_t str1 = STR_INIT;
         kstring_t str2 = STR_INIT;
         BGZF *fp1 = NULL, *fp2 = NULL;
-        do {
-            l1 = kseq_read(seq1);
-            l2 = kseq_read(seq2);
-            if ( l1 < 0 || l2 < 0 )
-                break;
-            str1.l = 0;
-            str2.l = 0;
-
+        do
+        {
+            l1 = kseq_read(seq1); l2 = kseq_read(seq2);
+            if ( l1 < 0 || l2 < 0 ) break;
+            str1.l = 0; str2.l = 0;
             for ( i = 0; i < seq1->name.l -1; ++i )
                 if ( seq1->name.s[i] != seq2->name.s[i])
                     error("Inconsistant read name. %s vs %s.", seq1->name.s, seq2->name.s);
@@ -378,88 +395,47 @@ int trim_adaptor()
                         // export trimed fastqs
                         if ( args.rename_uid_flag == 1 ) {
                             if ( file_is_fastq == 0 ) {
-                                kputc('@', &str1);
-                                kputs(seq1->name.s, &str1);
-                                if ( str1.s[str1.l-2] == '/' && str1.s[str1.l-1] == '1')
-                                    str1.l -= 2;
-                                kputs("_UID:",&str1);
-                                kputsn(seq1->seq.s+i+args.adaptor_length, l, &str1);
-                                kputc('\n', &str1);
-                                kputsn(seq1->seq.s, i, &str1);                            
-                                kputs("\n+\n", &str1);
-                                kputsn(seq1->qual.s, i, &str1);
-                                kputc('\n', &str1);
+                                kputc('@', &str1); kputs(seq1->name.s, &str1);                                
+                                if ( str1.s[str1.l-2] == '/' && str1.s[str1.l-1] == '1') str1.l -= 2;                                    
+                                kputs("_UID:",&str1); kputsn(seq1->seq.s+i+args.adaptor_length, l, &str1);
+                                kputc('\n', &str1); kputsn(seq1->seq.s, i+1, &str1);
+                                kputs("\n+\n", &str1); kputsn(seq1->qual.s, i+1, &str1); kputc('\n', &str1);                                
                                 if ( args.drop_read2 == 0 ) {
-                                    kputc('@', &str2);
-                                    kputs(seq1->name.s, &str2);
-                                    if ( str2.s[str2.l-2] == '/' && str2.s[str2.l-1] == '2')
-                                        str2.l -= 2;
-                                    kputs("_UID:",&str2);
-                                    kputsn(seq1->seq.s+i+args.adaptor_length, l, &str2);
-                                    kputc('\n', &str2);
-                                    kputsn(seq1->seq.s, i, &str2);                            
-                                    kputs("\n+\n", &str2);
-                                    kputsn(seq1->qual.s, i, &str2);
-                                    kputc('\n', &str2);
+                                    kputc('@', &str2); kputs(seq1->name.s, &str2);
+                                    if ( str2.s[str2.l-2] == '/' && str2.s[str2.l-1] == '2') str2.l -= 2;
+                                    kputs("_UID:",&str2); kputsn(seq1->seq.s+i+args.adaptor_length, l, &str2);
+                                    kputc('\n', &str2); kputsn(seq1->seq.s, i+1, &str2);                            
+                                    kputs("\n+\n", &str2); kputsn(seq1->qual.s, i+1, &str2); kputc('\n', &str2);
                                 }
                             } else {
-                                kputc('>', &str1);
-                                kputs(seq1->name.s, &str1);
-                                if ( str1.s[str1.l-2] == '/' && str1.s[str1.l-1] == '1')
-                                    str1.l -= 2;
-                                kputs("_UID:",&str1);
-                                kputsn(seq1->seq.s+i+args.adaptor_length, l, &str1);
-                                kputc('\n', &str1);
-                                kputsn(seq1->seq.s, i, &str1);                            
-                                kputc('\n', &str1);
-
+                                kputc('>', &str1); kputs(seq1->name.s, &str1);
+                                if ( str1.s[str1.l-2] == '/' && str1.s[str1.l-1] == '1') str1.l -= 2;
+                                kputs("_UID:",&str1); kputsn(seq1->seq.s+i+args.adaptor_length, l, &str1);
+                                kputc('\n', &str1); kputsn(seq1->seq.s, i+1, &str1); kputc('\n', &str1);
                                 // read 2
                                 if ( args.drop_read2 == 0 ) {
-                                    kputc('>', &str2);
-                                    kputs(seq1->name.s, &str2);
-                                    if ( str2.s[str2.l-2] == '/' && str2.s[str2.l-1] == '2')
-                                        str2.l -= 2;
-                                    kputs("_UID:",&str2);
-                                    kputsn(seq1->seq.s+i+args.adaptor_length, l, &str2);
-                                    kputc('\n', &str2);
-                                    kputsn(seq1->seq.s, i, &str2);                            
-                                    kputc('\n', &str2);
+                                    kputc('>', &str2); kputs(seq1->name.s, &str2);
+                                    if ( str2.s[str2.l-2] == '/' && str2.s[str2.l-1] == '2') str2.l -= 2;
+                                    kputs("_UID:",&str2); kputsn(seq1->seq.s+i+args.adaptor_length, l, &str2);
+                                    kputc('\n', &str2); kputsn(seq1->seq.s, i+1, &str2); kputc('\n', &str2);                                    
                                 }
                             }
                         } else {
                             if ( file_is_fastq == 0 ) {
-                                kputc('@', &str1);
-                                kputs(seq1->name.s, &str1);
-                                kputc('\n', &str1);
-                                kputsn(seq1->seq.s, i, &str1);
-                                kputs("\n+\n", &str1);
-                                kputsn(seq1->qual.s, i, &str1);
-                                kputc('\n', &str1);
-
+                                kputc('@', &str1); kputs(seq1->name.s, &str1); kputc('\n', &str1); kputsn(seq1->seq.s, i+1, &str1); 
+                                kputs("\n+\n", &str1); kputsn(seq1->qual.s, i+1, &str1); kputc('\n', &str1);
                                 if ( args.drop_read2 == 0 ) {
                                     // read 2
-                                    kputc('@', &str2);
-                                    kputs(seq1->name.s, &str2);
-                                    kputc('\n', &str2);
-                                    kputsn(seq1->seq.s, i, &str2);
-                                    kputs("\n+\n", &str2);
-                                    kputsn(seq1->qual.s, i, &str2);
-                                    kputc('\n', &str2);
+                                    kputc('@', &str2); kputs(seq1->name.s, &str2); kputc('\n', &str2);
+                                    kputsn(seq1->seq.s, i+1, &str2); kputs("\n+\n", &str2); kputsn(seq1->qual.s, i+1, &str2); kputc('\n', &str2);
                                 }
                             } else {
-                                kputc('>', &str1);
-                                kputs(seq1->name.s, &str1);
-                                kputc('\n', &str1);
-                                kputsn(seq1->seq.s, i, &str1);
-                                kputc('\n', &str1);
-
+                                kputc('>', &str1); kputs(seq1->name.s, &str1); kputc('\n', &str1);
+                                kputsn(seq1->seq.s, i+1, &str1); kputc('\n', &str1);
                                 // read 2
                                 if ( args.drop_read2 == 0 ) {
-                                    kputc('>', &str2);
-                                    kputs(seq1->name.s, &str2);
-                                    kputc('\n', &str2);
-                                    kputsn(seq1->seq.s, i, &str2);
-                                    kputc('\n', &str2);
+                                    kputc('>', &str2); kputs(seq1->name.s, &str2); kputc('\n', &str2);
+                                    kputsn(seq1->seq.s, i+1, &str2); kputc('\n', &str2);
                                 }
                             }                        
                         } // end uid parse
@@ -496,8 +472,198 @@ int trim_adaptor()
             if ( fp2 == args.failed_2 && bgzf_write(fp2, str2.s, str2.l ) != str2.l )                
                 error ("Write error : %d", fp1->errcode);
           skip_record2:
-            fp1 = NULL;
-            fp2 = NULL;
+            fp1 = NULL; fp2 = NULL;            
+        } while (1);
+        if ( l1 != l2 )
+            error("Inconsistant read records. %d vs %d", l1, l2);
+
+        if ( str1.m ) free(str1.s);            
+        if ( str2.m ) free(str2.s);
+    }
+
+    if ( string.m ) free(string.s);
+    kseq_destroy(seq1);
+    if ( seq2 )
+        kseq_destroy(seq2);
+    clean_barcode_struct(&args.barcode);
+    if ( args.failed_1 != NULL )
+        bgzf_close(args.failed_1);
+    if ( args.failed_2 != NULL )
+        bgzf_close(args.failed_2);    
+    return 0;
+}
+
+int trim_adaptor()
+{
+    if ( args.barcode_fname )
+        return trim_adaptor_barcode();
+    
+    int l1, l2, i;
+    gzFile fp1, fp2;
+    kseq_t *seq1 = NULL, *seq2 = NULL;    
+    int file_is_fastq;
+    file_is_fastq = check_file_is_fastq(args.read1_file);
+    if ( file_is_fastq == -1)
+        return 1;
+
+    fp1 = gzopen(args.read1_file, "r");
+    if ( fp1 == 0 )
+        error ("%s : %s", args.read1_file, strerror(errno));
+    seq1 = kseq_init(fp1);
+    
+    if ( args.read2_file != NULL) {
+        int check_file = check_file_is_fastq(args.read2_file);
+        if ( check_file != file_is_fastq )
+            error("Inconsistant file type. %d vs %d.", file_is_fastq, check_file );        
+            
+        fp2 = gzopen(args.read2_file, "r");
+        if ( fp2 == NULL)
+            error("%s : %s.", args.read2_file, strerror(errno));
+        
+        seq2 = kseq_init(fp2);    
+    }
+
+    kstring_t string = STR_INIT;
+    do {
+        string.l = 0;        
+        if ( args.output_dir ) {
+            if ( args.out1 ) {
+                ksprintf(&string, "%s/%s", args.output_dir, args.out1);
+            } else {
+                ksprintf(&string, "%s/trimmed_1.%s.gz", args.output_dir, file_is_fastq == 0 ? "fq" : "fa");
+            }
+        } else {
+            if ( args.out1 ) {
+                kputs(args.out1, &string);
+            } else {
+                ksprintf(&string, "trimmed_1.%s.gz", file_is_fastq == 0 ? "fq" : "fa");
+            }
+        }
+        args.failed_1 = bgzf_open(string.s, "w");
+        if ( args.failed_1 == NULL )
+            error("%s : %s.", string.s, strerror(errno));
+            
+        if ( args.read2_file == NULL || args.drop_read2 == 0)
+            break;
+        string.l = 0;
+        if ( args.output_dir ) {
+            if ( args.out2 ) {
+                ksprintf(&string, "%s/%s", args.output_dir, args.out2);
+            } else {
+                ksprintf(&string, "%s/trimmed_2.%s.gz", args.output_dir, file_is_fastq == 0 ? "fq" : "fa");
+            }
+        } else {
+            if ( args.out2 ) {
+                kputs(args.out2, &string);
+            } else {
+                ksprintf(&string, "trimmed_2.%s.gz", file_is_fastq == 0 ? "fq" : "fa");
+            }
+        }
+        args.failed_2 = bgzf_open(string.s, "w");
+        if ( args.failed_2 == NULL )
+            error("%s : %s.", string.s, strerror(errno));        
+    } while ( 0 );
+    
+    if ( args.read2_file == NULL ) {
+
+        // TODO : improve the efficient of this function.
+        // complexity of this function is O(n*k*(m-l)), n is reads count, k is the barcode count, m is the read length, and  l is the adaptor length
+        do {
+            l1 = kseq_read(seq1);
+            if ( l1 < 0 )
+                break;
+            if ( l1 == 0 )
+                continue;
+            int check_length = l1 - args.adaptor_length;
+            string.l = 0;
+            for ( i = 0; i <  check_length; ++i ) {                
+                if ( check_match2(seq1->seq.s+i, args.adaptor, args.mis_ada, args.adaptor_length) < 0 ) { 
+                    continue;
+                } else { // check the barcode, failed barcode reads will also export to failed fastqs.
+                    if ( args.minimual_length &&  i < args.minimual_length )
+                        break;
+                    if ( file_is_fastq == 0 ) {
+                        kputc('@', &string); kputs(seq1->name.s, &string); kputc('\n', &string);
+                        kputsn(seq1->seq.s, i+1, &string); kputs("\n+\n", &string);
+                        kputsn(seq1->qual.s, i+1, &string); kputc('\n', &string);
+                    } else {
+                        kputc('>', &string); kputs(seq1->name.s, &string); kputc('\n', &string);
+                        kputsn(seq1->seq.s, i+1, &string); kputc('\n', &string);
+                    }
+                }
+                break;
+            }
+            if ( i > args.minimual_length ) {
+                if ( i == check_length ) {
+                    if ( file_is_fastq == 0 ) {
+                        ksprintf(&string, "@%s\n%s\n+\n%s\n", seq1->name.s, seq1->seq.s, seq1->qual.s);                
+                    } else {
+                        ksprintf(&string, ">%s\n%s\n", seq1->name.s, seq1->seq.s);
+                    }
+                }
+                if ( bgzf_write(args.failed_1, string.s, string.l ) != string.l )
+                    error ("Write error : %d", args.failed_1->errcode);
+            }
+            
+        } while (1);
+        
+    } else {
+        kstring_t str1 = STR_INIT;
+        kstring_t str2 = STR_INIT;
+        do {
+            l1 = kseq_read(seq1); l2 = kseq_read(seq2);
+            if ( l1 < 0 || l2 < 0 )
+                break;
+            str1.l = 0; str2.l = 0;
+            for ( i = 0; i < seq1->name.l -1; ++i )
+                if ( seq1->name.s[i] != seq2->name.s[i])
+                    error("Inconsistant read name. %s vs %s.", seq1->name.s, seq2->name.s);
+
+            // only check adaptor pollution in the read 1, if success trim read 1 and read 2
+            int check_length = l1 - args.adaptor_length;            
+            for ( i = 0; i < check_length; ++i ) {
+                if ( check_match2(seq1->seq.s+i, args.adaptor, args.mis_ada, args.adaptor_length) < 0 ) {
+                    continue;
+                } else {
+                    if ( args.minimual_length &&  i < args.minimual_length )
+                        break;
+                    
+                    if ( file_is_fastq == 0 ) {
+                        kputc('@', &str1); kputs(seq1->name.s, &str1); kputc('\n', &str1);
+                        kputsn(seq1->seq.s, i+1, &str1); kputs("\n+\n", &str1);
+                        kputsn(seq1->qual.s, i+1, &str1); kputc('\n', &str1);
+                        // read 2
+                        kputc('@', &str2); kputs(seq2->name.s, &str2); kputc('\n', &str2);
+                        kputsn(seq2->seq.s, i+1, &str2); kputs("\n+\n", &str2);
+                        kputsn(seq2->qual.s, i+1, &str2); kputc('\n', &str2);
+                    } else {
+                        kputc('>', &str1); kputs(seq1->name.s, &str1); kputc('\n', &str1);
+                        kputsn(seq1->seq.s, i+1, &str1); kputc('\n', &str1);
+                        // read 2
+                        kputc('>', &str2); kputs(seq1->name.s, &str2); kputc('\n', &str2);
+                        kputsn(seq1->seq.s, i+1, &str2); kputc('\n', &str2);
+                    }                    
+                } // end match
+                // i = check_length;
+                break;
+            }
+            if ( i > args.minimual_length ) {
+
+                if ( i == check_length ) {
+                    if ( file_is_fastq == 0 ) {
+                        ksprintf(&str1, "@%s\n%s\n+\n%s\n", seq1->name.s, seq1->seq.s, seq1->qual.s);
+                        ksprintf(&str2, "@%s\n%s\n+\n%s\n", seq2->name.s, seq2->seq.s, seq2->qual.s);                
+                    } else {
+                        ksprintf(&str1, ">%s\n%s\n", seq1->name.s, seq1->seq.s);
+                        ksprintf(&str2, ">%s\n%s\n", seq2->name.s, seq2->seq.s);
+                    }
+                }
+            
+                if ( bgzf_write(args.failed_1, str1.s, str1.l ) != str1.l )
+                    error ("Write error : %d", args.failed_1->errcode);            
+                if ( bgzf_write(args.failed_2, str2.s, str2.l ) != str2.l )                
+                    error ("Write error : %d", args.failed_2->errcode);
+            }
         } while (1);
         if ( l1 != l2 )
             error("Inconsistant read records. %d vs %d", l1, l2);
@@ -514,13 +680,15 @@ int trim_adaptor()
     kseq_destroy(seq1);
     if ( seq2 )
         kseq_destroy(seq2);
-    clean_barcode_struct(&args.barcode);
+
     if ( args.failed_1 != NULL )
         bgzf_close(args.failed_1);
     if ( args.failed_2 != NULL )
         bgzf_close(args.failed_2);    
     return 0;
+    
 }
+
 int main(int argc, char **argv)
 {
     if ( parse_args(argc, argv) )
