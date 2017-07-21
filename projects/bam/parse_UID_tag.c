@@ -99,7 +99,7 @@ int sam_parse_UID()
             
             if ( string.s[i] == '_' && string.s[i+1] == 'U' && string.s[i+2] == 'I' && string.s[i+3] == 'D' && string.s[i+4] == ':') {
                 int j;
-                for ( j = i + 5; j < string.l -6; ++i )
+                for ( j = i + 5; j < string.l -6; ++j )
                     if ( string.s[j] == '\t' )
                         break;
                 int l = j - i;
