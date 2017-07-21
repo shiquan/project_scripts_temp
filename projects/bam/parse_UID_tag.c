@@ -70,12 +70,15 @@ int parse_args(int argc, char **argv)
     if ( length )
         args.length = str2int((char*)length);
     
-    if ( fn == NULL && !isatty(fileno(stdin)) )
-        args.in =sam_open("-", "r");
-    else if ( argc == 2 )
-        args.in = sam_open(fn, "r");
-    else
-        return usage();
+    if ( fn == NULL ) {
+        if (!isatty(fileno(stdin)) )
+            args.in =sam_open("-", "r");
+        else
+            return usage();
+    }
+    
+    args.in = sam_open(fn, "r");
+    
 
     if ( args.in == 0 ) {
         error_print("Failed to open %s.", argc == 1 ? "-" : argv[1]);
