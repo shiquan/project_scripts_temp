@@ -90,7 +90,7 @@ int sam_parse_UID()
     // read alignments
     while ( (r = sam_read1(args.in, args.header, b)) >= 0 ) {
         string.l = 0;
-        if ( sam_format1(args.header, b, &string) ) 
+        if ( sam_format1(args.header, b, &string) == -1) 
             goto bad_format;
         int i;
         for ( i = 0; i < string.l-6; ++i ) {
