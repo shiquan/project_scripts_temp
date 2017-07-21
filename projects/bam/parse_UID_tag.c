@@ -105,8 +105,6 @@ int sam_parse_UID()
         string.l = 0;
         if ( sam_format1(args.header, b, &string) == -1) 
             goto bad_format;
-        if ( string.s[string.l -1 ] == '\n')
-            string.l --;
         int i;
         for ( i = 0; i < string.l-6; ++i ) {
             if ( string.s[i] == '\t')                 
@@ -130,7 +128,7 @@ int sam_parse_UID()
                 break;
             }
         }
-        kputc('\n', &string);
+        //kputc('\n', &string);
         puts(string.s);
     }
          
