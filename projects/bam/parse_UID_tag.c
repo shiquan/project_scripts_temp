@@ -116,7 +116,7 @@ int sam_parse_UID()
                     if ( string.s[j] == '\t' )
                         break;
                 int l = j - i;
-                char *s = strndup(string.s+i, l);
+                char *s = strndup(string.s+i+5, l);
                 memmove(string.s+i, string.s+j, string.l -j);
 
                 string.l -= l;
