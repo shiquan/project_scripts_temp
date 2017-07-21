@@ -260,7 +260,7 @@ int trim_adaptor()
                     for ( j = 0; j < args.barcode.n; ++j ) {
                         struct name *name = &args.barcode.names[j];
                         int l = strlen(name->barcode);
-                        if ( l1 < i + l ) { // export to failed fastqs
+                        if ( l1 < i + l + args.adaptor_length ) { // export to failed fastqs
                             continue;
                         }                             
                         int m = check_match2(seq1->seq.s+i+args.adaptor_length, name->barcode, args.mis_bar, l);

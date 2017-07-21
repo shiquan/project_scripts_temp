@@ -1,4 +1,4 @@
-PROG=  mk allele_freqs seqtrim split_barcode umi_parser dyncut_adaptor
+PROG=  mk allele_freqs seqtrim split_barcode umi_parser dyncut_adaptor sam_parse_uid
 
 all: $(PROG)
 
@@ -60,6 +60,9 @@ umi_parser:
 
 dyncut_adaptor:
 	$(CC) $(CFLAGS) $(DFLAGS) $(INCLUDES) -o bin/dyncut_adaptor projects/sequence/dyncut_adaptor_trim_uid.c lib/number.c lib/fastq.c $(HTSLIB)
+
+sam_parse_uid:
+	$(CC) $(CFLAGS) $(DFLAGS) $(INCLUDES) -o bin/$@ projects/bam/parse_UID_tag.c  $(HTSLIB)
 
 clean: testclean
 	-rm -f gmon.out *.o *~ $(PROG) pkg_version.h  version.h
