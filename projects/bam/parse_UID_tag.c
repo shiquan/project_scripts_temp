@@ -10,7 +10,11 @@ int usage()
     fprintf(stderr,
             "Usage: sam_parse_uid in.bam\n"
             "   -tag BC    barcode tag for sam file\n"
-            "Version: %s", PROJECTS_VERSION
+            "\n"
+            "Version: %s\n"
+            "Homepage: https://github.com/shiquan/small_projects\n"
+            , PROJECTS_VERSION
+            
         );
     return 1;
 }
