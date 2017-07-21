@@ -2,7 +2,7 @@
 #include "htslib/sam.h"
 #include "htslib/kstring.h"
 #include "htslib/bgzf.h"
-#include "htslib/hts.h"
+// #include "htslib/hts.h"
 #include <unistd.h>
 #include "pkg_version.h"
 
@@ -81,12 +81,7 @@ int parse_args(int argc, char **argv)
 
 int sam_parse_UID()
 {
-    htsFile *fp = hts_open(fileno(stdout), "w");
-    
-    if ( bam_hdr_write(fp, args.header) ) {
-        error_print("Failed to print header.");
-        return 1;
-    }
+    puts(args.header->text);
     
     bam1_t *b = bam_init1();
     int r;
@@ -94,6 +89,7 @@ int sam_parse_UID()
     
     // read alignments
     while ( (r = sam_read1(args.in, args.header, b)) >= 0 ) {
+        string.l = 0;
         if ( sam_format1(args.header, b, &string) ) 
             goto bad_format;
         int i;
@@ -117,22 +113,19 @@ int sam_parse_UID()
                 break;
             }
         }
-    }
-    kputc('\n', &string);
-    if ( hwrite(fp->fp.hfile, string.s, string.l ) != string.l )  {
-        error_print("Write error.");
-        goto bad_format;
+        kputc('\n', &string);
+        puts(string.s);
     }
          
     if ( string.m ) free(string.s);
     bam_destroy1(b);
-    hts_close(fp);
+    // hts_close(fp);
     return 0;
 
   bad_format:
     if ( string.m ) free(string.s);
     bam_destroy1(b);
-    hts_close(fp);
+    //hts_close(fp);
     return 1;
 }
 void release_memory()
