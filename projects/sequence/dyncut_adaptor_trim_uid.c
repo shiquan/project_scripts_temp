@@ -28,7 +28,7 @@ int usage()
             "    -uid          rename read id with extra barcode tag\n"
             "\n"
             "Trim adaptor mode options:\n"
-            "    -trim         trim ends even if partly adaptor detected, conflict with -uid and -barcode\n"
+            "    -trim  INT    trim ends even if partly adaptor detected, conflict with -uid and -barcode\n"
             "    -out1         output file for trim read1 [trim adaptor mode] or failed read1[barcode split mode]\n"
             "    -out2         output file for trim read2 [trim adaptor mode] or failed read2[barcode split mode]\n"
             "\n"
@@ -51,7 +51,7 @@ struct args {
     int minimual_length;
     const char *report_fname;
     int rename_uid_flag;
-    int trim_tails_flag;
+    int trim_tail;
     int drop_read2;
     const char *read1_file;
     const char *read2_file;
@@ -70,7 +70,7 @@ struct args {
     .mis_bar = 0,
     .report_fname = NULL,
     .rename_uid_flag = 0,
-    .trim_tails_flag = 0,
+    .trim_tail = 5,
     .read1_file = NULL,
     .read2_file = NULL,
     .drop_read2 = 0,
@@ -90,6 +90,7 @@ int parse_args(int argc, char **argv)
     const char *mis_ada = NULL;
     const char *mis_bar = NULL;
     const char *minimual_length = NULL;
+    const char *trim_tails = NULL;
     int i;
     for ( i = 1; i < argc; ) {
         const char *a = argv[i++];
@@ -115,6 +116,9 @@ int parse_args(int argc, char **argv)
             var = &args.out1;
         else if ( strcmp(a, "-out2") == 0 && args.out2 == NULL )
             var = &args.out2;
+        else if ( strcmp(a, "-trim") == 0 )
+            var = &trim_tails;
+        
         
         if ( var != 0 ) {
             if ( i == argc ) {
@@ -149,7 +153,13 @@ int parse_args(int argc, char **argv)
     args.adaptor_length = strlen(args.adaptor);
     if ( check_acgt(args.adaptor, args.adaptor_length) )
         error("%s looks not like an adaptor sequence.", args.adaptor);
-    
+
+    if ( trim_tail ) {
+        args.trim_tail = str2int((char*)trim_tail);
+        if ( args.trim_tail < 5 )
+            args.trim_tail = 5;
+    }
+
     if ( mis_ada ) {
         args.mis_ada = str2int((char*)mis_ada);
         if ( args.mis_ada < 0 )
@@ -372,7 +382,7 @@ int trim_adaptor_barcode()
                     error("Inconsistant read name. %s vs %s.", seq1->name.s, seq2->name.s);
 
             // only check adaptor pollution in the read 1, if success trim read 1 and read 2
-            int check_length = l1 - args.adaptor_length;            
+            int check_length = l1 - args.adaptor_length;
             for ( i = 0; i < check_length; ++i ) {
                 if ( check_match2(seq1->seq.s+i, args.adaptor, args.mis_ada, args.adaptor_length) < 0 ) {
                     continue;
@@ -574,10 +584,12 @@ int trim_adaptor()
                 break;
             if ( l1 == 0 )
                 continue;
-            int check_length = l1 - args.adaptor_length;
+            int check_length = l1 - args.trim_tail;
+            int l;
             string.l = 0;
-            for ( i = 0; i <  check_length; ++i ) {                
-                if ( check_match2(seq1->seq.s+i, args.adaptor, args.mis_ada, args.adaptor_length) < 0 ) { 
+            for ( i = 0; i <  check_length; ++i ) {
+                l = l1 - i < args.adaptor_length ? l1 -i : args.adaptor_length;                    
+                if ( check_match2(seq1->seq.s+i, args.adaptor, l < 8 ? 0 : args.mis_ada, l) < 0 ) { 
                     continue;
                 } else { // check the barcode, failed barcode reads will also export to failed fastqs.
                     if ( args.minimual_length &&  i < args.minimual_length )
@@ -620,9 +632,11 @@ int trim_adaptor()
                     error("Inconsistant read name. %s vs %s.", seq1->name.s, seq2->name.s);
 
             // only check adaptor pollution in the read 1, if success trim read 1 and read 2
-            int check_length = l1 - args.adaptor_length;            
+            int check_length = l1 - args.trim_tail;
+            int l;
             for ( i = 0; i < check_length; ++i ) {
-                if ( check_match2(seq1->seq.s+i, args.adaptor, args.mis_ada, args.adaptor_length) < 0 ) {
+                l = l1 - i < args.adaptor_length ? l1 -i : args.adaptor_length;
+                if ( check_match2(seq1->seq.s+i, args.adaptor, l < 8 ? 0 : args.mis_ada, l) < 0 ) {
                     continue;
                 } else {
                     if ( args.minimual_length &&  i < args.minimual_length )
