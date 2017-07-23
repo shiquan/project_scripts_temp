@@ -128,7 +128,7 @@ int parse_args(int argc, char **argv)
             *var = argv[i++];
             continue;
         }
-        if ( strcmp(a, "-uid") == 0 ) {
+       if ( strcmp(a, "-uid") == 0 ) {
             args.rename_uid_flag = 1;
             continue;
         } else if ( strcmp(a, "-dropr2") == 0 ) {
@@ -174,6 +174,7 @@ int parse_args(int argc, char **argv)
 
     if ( minimual_length )
         args.minimual_length = str2int((char*)minimual_length);
+
     if ( args.barcode_fname ) {
         if ( load_barcode_file(args.barcode_fname, &args.barcode) ) {
             error_print("Failed to load barcode file.");
@@ -553,7 +554,7 @@ int trim_adaptor()
         if ( args.failed_1 == NULL )
             error("%s : %s.", string.s, strerror(errno));
             
-        if ( args.read2_file == NULL || args.drop_read2 == 0)
+        if ( args.read2_file == NULL || args.drop_read2 == 1)
             break;
         string.l = 0;
         if ( args.output_dir ) {
