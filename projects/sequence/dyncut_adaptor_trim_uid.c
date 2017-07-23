@@ -90,7 +90,7 @@ int parse_args(int argc, char **argv)
     const char *mis_ada = NULL;
     const char *mis_bar = NULL;
     const char *minimual_length = NULL;
-    const char *trim_tails = NULL;
+    const char *trim_tail = NULL;
     int i;
     for ( i = 1; i < argc; ) {
         const char *a = argv[i++];
@@ -117,7 +117,7 @@ int parse_args(int argc, char **argv)
         else if ( strcmp(a, "-out2") == 0 && args.out2 == NULL )
             var = &args.out2;
         else if ( strcmp(a, "-trim") == 0 )
-            var = &trim_tails;
+            var = &trim_tail;
         
         
         if ( var != 0 ) {
