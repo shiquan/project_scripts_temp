@@ -32,7 +32,7 @@ int usage()
             "    -out1         output file for trim read1 [trim adaptor mode] or failed read1[barcode split mode]\n"
             "    -out2         output file for trim read2 [trim adaptor mode] or failed read2[barcode split mode]\n"
             "\n"
-            "Version : %s"
+            "Version : %s\n"
             "Homepage : https://github.com/shiquan/small_projects\n",
             PROJECTS_VERSION            
         );
