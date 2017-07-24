@@ -94,7 +94,7 @@ int parse_args(int argc, char **argv)
 
 int sam_parse_UID()
 {
-    fprintf(stdout, "%s", sargs.header->text);
+    fprintf(stdout, "%s", args.header->text);
     
     bam1_t *b = bam_init1();
     int r;
