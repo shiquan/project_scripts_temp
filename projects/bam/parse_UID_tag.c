@@ -148,7 +148,10 @@ int sam_parse_UID()
                         break;
                 int l = j - i-5;
                 char *p = string.s+i+5;
-                
+                string.l -= l;
+                char *s = strndup(p, l);
+                memmove(string.s+i, string.s+j, string.l -j);
+
                 if ( args.start > 0 ) {
                     p += args.start;
                     l -= args.start;
@@ -157,11 +160,7 @@ int sam_parse_UID()
                 if ( args.end > 0 ) {
                     l = args.start > 0 ?  args.end - args.start + 1 : args.end + 1;
                 }
-                
-                char *s = strndup(p, l);
-                memmove(string.s+i, string.s+j, string.l -j);
-
-                string.l -= l;
+                                
                 kputc('\t', &string);
                 kputsn((char*)args.bc_tag, 2, &string); kputs(":Z:", &string);
 
