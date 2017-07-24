@@ -6,13 +6,17 @@
 #include <unistd.h>
 #include "pkg_version.h"
 #include "number.h"
+#include "sequence.h"
 
 int usage()
 {
     fprintf(stderr,
             "Usage: sam_parse_uid in.bam\n"
-            "   -tag BC    barcode tag for sam file\n"
-            "   -len INT   barcode length capped to this value\n"
+            "   -tag BC       barcode tag for sam file\n"
+            //"   -len INT   barcode length capped to this value\n"
+            "   -start INT    start position of the UID sequence\n"
+            "   -end   INT    end position of the UID sequence\n"
+            "   -comp         complementary strand of UID sequence\n"
             "\n"
             "Version: %s\n"
             "Homepage: https://github.com/shiquan/small_projects\n"
@@ -26,18 +30,26 @@ struct args {
     samFile *in;
     bam_hdr_t *header;
     const char *bc_tag;
-    int length;
+    //int length;
+    int start;
+    int end;
+    int barcode_compl;
 } args = {
     .in = NULL,
     .header = NULL,
     .bc_tag = NULL,
-    .length = 0,
+    //.length = 0,
+    .start = -1,
+    .end = -1,
+    .barcode_compl = 0,
 };
 int parse_args(int argc, char **argv)
 {
     int i;
     const char *fn = NULL;
-    const char *length = NULL;
+    //const char *length = NULL;
+    const char *start = NULL;
+    const char *end = NULL;
     for ( i = 1; i < argc; ) {
         const char *a = argv[i++];
         if ( strcmp(a, "-h") == 0 )
@@ -46,9 +58,13 @@ int parse_args(int argc, char **argv)
         const char **var = 0;
         if ( strcmp(a, "-tag") == 0 && args.bc_tag == NULL )
             var = &args.bc_tag;
-        else if ( strcmp(a, "-len") == 0 && args.length == 0 )
-            var = &length;
-                  
+        // else if ( strcmp(a, "-len") == 0 && args.length == 0 )
+        // var = &length;
+        else if ( strcmp(a, "-start") == 0 && start == NULL )
+            var = &start;
+        else if ( strcmp(a, "-end") == 0 && end == NULL )
+            var = &end;
+                
         if ( var != 0 ) {
             if ( i == argc) {
                 error_print("Miss an argument after %s.", a);
@@ -57,6 +73,12 @@ int parse_args(int argc, char **argv)
             *var = argv[i++];
             continue;
         }
+
+        if ( strcmp(a, "-comp") == 0 ) {
+            args.barcode_compl = 1;
+            continue;
+        }
+        
         if ( fn == NULL )
             fn = a;
         else
@@ -67,8 +89,17 @@ int parse_args(int argc, char **argv)
         args.bc_tag = "BC";
     // todo: check the selfdefined tag is properly designed.
 
-    if ( length )
-        args.length = str2int((char*)length);
+    /* if ( length ) */
+    /*     args.length = str2int((char*)length); */
+
+    if ( start ) {
+        args.start = str2int((char*)start);
+        args.start--; // convert 1 based to 0 based position
+    }
+    if ( end ) {
+        args.end = str2int((char*)end);
+        args.end--;
+    }
     
     if ( fn == NULL ) {
         if (!isatty(fileno(stdin)) )
@@ -116,15 +147,32 @@ int sam_parse_UID()
                     if ( string.s[j] == '\t' )
                         break;
                 int l = j - i-5;
-                char *s = strndup(string.s+i+5, l);
+                char *p = string.s+i+5;
+                
+                if ( args.start > 0 ) {
+                    p += args.start;
+                    l -= args.start;
+                }
+
+                if ( args.end > 0 ) {
+                    l = args.start > 0 ?  args.end - args.start + 1 : args.end + 1;
+                }
+                
+                char *s = strndup(p, l);
                 memmove(string.s+i, string.s+j, string.l -j);
 
                 string.l -= l;
                 kputc('\t', &string);
                 kputsn((char*)args.bc_tag, 2, &string); kputs(":Z:", &string);
-                if ( args.length && l > args.length )
-                    l = args.length;
+
+                if ( args.barcode_compl ) {
+                    char *r = rev_seqs(s, l);
+                    free(s);
+                    s = r;
+                }
+                    
                 kputsn(s, l, &string);
+                free(s);
                 break;
             }
         }
