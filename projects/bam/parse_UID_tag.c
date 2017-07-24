@@ -146,9 +146,10 @@ int sam_parse_UID()
                 for ( j = i + 5; j < string.l -6; ++j )
                     if ( string.s[j] == '\t' )
                         break;
-                int l = j - i-5;
+                int l = j - i;
                 char *p = string.s+i+5;
                 string.l -= l;
+                l -= 5;
                 if ( args.start > 0 ) {
                     p += args.start;
                     l -= args.start;
