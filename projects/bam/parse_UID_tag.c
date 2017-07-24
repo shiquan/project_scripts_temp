@@ -160,8 +160,8 @@ int sam_parse_UID()
                 }
 
                 char *s = strndup(p, l);
-                memmove(string.s+i, string.s+j, string.l -j);
-
+                memmove(string.s+i, string.s+j, string.l -j + 1);
+                
                 kputc('\t', &string);
                 kputsn((char*)args.bc_tag, 2, &string); kputs(":Z:", &string);
 
