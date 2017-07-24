@@ -94,7 +94,7 @@ int parse_args(int argc, char **argv)
 
 int sam_parse_UID()
 {
-    fprintf(stdout, "%s", args.header->text);
+    fprintf(stdout, "%s", sargs.header->text);
     
     bam1_t *b = bam_init1();
     int r;
@@ -115,7 +115,7 @@ int sam_parse_UID()
                 for ( j = i + 5; j < string.l -6; ++j )
                     if ( string.s[j] == '\t' )
                         break;
-                int l = j - i;
+                int l = j - i-5;
                 char *s = strndup(string.s+i+5, l);
                 memmove(string.s+i, string.s+j, string.l -j);
 
