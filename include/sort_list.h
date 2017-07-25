@@ -12,7 +12,7 @@ typedef int comp_func(const void *elem1, const void *elem2);
 typedef void del_func(void *list);
 
 extern int sort_list(void *list, comp_func *func);
-extern void list_lite_del(void *list, del_func delete);
+extern void list_lite_del(void *list, del_func del);
 #endif
 
 
