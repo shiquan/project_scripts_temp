@@ -1,4 +1,4 @@
-PROG=  mk allele_freqs seqtrim split_barcode umi_parser dyncut_adaptor sam_parse_uid
+PROG=  mk allele_freqs seqtrim split_barcode umi_parser dyncut_adaptor sam_parse_uid retrievebed
 
 all: $(PROG)
 
@@ -63,6 +63,9 @@ dyncut_adaptor:
 
 sam_parse_uid:
 	$(CC) $(CFLAGS) $(DFLAGS) $(INCLUDES) -o bin/$@ projects/bam/parse_UID_tag.c lib/number.c lib/sequence.c $(HTSLIB)
+
+retrievebed:
+	$(CC) $(CFLAGS) $(DFLAGS) $(INCLUDES) -DGENEPRED_TEST_MAIN -o bin/$@ lib/genepred.c lib/number.c lib/sort_list.c  $(HTSLIB)
 
 clean: testclean
 	-rm -f gmon.out *.o *~ $(PROG) pkg_version.h  version.h
