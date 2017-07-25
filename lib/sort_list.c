@@ -65,7 +65,7 @@ int sort_rmdup_list(void *plist, comp_func *func, del_func del_func)
     free(array);
     return 0;        
 }
-void list_lite_del(void *plist, delete_func delete)
+void list_lite_del(void *plist, del_func delete)
 {
     struct list_lite **pp = (struct list_lite**)plist;
     struct list_lite *list = *pp;
