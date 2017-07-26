@@ -1,4 +1,4 @@
-PROG=  mk allele_freqs seqtrim split_barcode umi_parser dyncut_adaptor sam_parse_uid retrievebed
+PROG=  mk allele_freqs seqtrim split_barcode umi_parser dyncut_adaptor sam_parse_uid retrievebed vcfeva
 
 all: $(PROG)
 
@@ -66,6 +66,9 @@ sam_parse_uid:
 
 retrievebed:
 	$(CC) $(CFLAGS) $(DFLAGS) $(INCLUDES) -DGENEPRED_TEST_MAIN -o bin/$@ lib/genepred.c lib/number.c lib/sort_list.c  $(HTSLIB)
+
+vcfeva:
+	$(CC) $(CFLAGS) $(DFLAGS) $(INCLUDES) -o bin/$@ projects/vcf/vcfeva.c $(HTSLIB)	
 
 clean: testclean
 	-rm -f gmon.out *.o *~ $(PROG) pkg_version.h  version.h
