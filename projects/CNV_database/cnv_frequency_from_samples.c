@@ -2,6 +2,7 @@
 #include "cnv_bed.h"
 #include "number.h"
 #include "sort_list.h"
+#include "pkg_version.h"
 #include <errno.h>
 #include <htslib/hts.h>
 #include <htslib/kstring.h>
@@ -35,14 +36,15 @@ struct args {
 int usage(const char *name)
 {
     fprintf(stderr,
+            "Version : %s\n"
             "%s [options] cnv_merged.bed\n"
-            "   "
+            "\n"
             "-min <min_length>         minimal length to filter\n"
             "-max <max_length>         maximal length capped to if set\n"
             "-total <sample numbers>   sample numbers, if set allele frequencies will output\n"
             "-dup-only                 only output duplications\n"
             "-del-only                 only output deletions\n"
-            , name);    
+            ,PROJECTS_VERSION, name);    
     return 1; 
 }
 int parse_args(int ac, char **av)

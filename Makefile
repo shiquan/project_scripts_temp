@@ -1,4 +1,4 @@
-PROG=  mk allele_freqs seqtrim split_barcode umi_parser dyncut_adaptor sam_parse_uid retrievebed vcfeva
+PROG=  mk allele_freqs seqtrim split_barcode umi_parser dyncut_adaptor sam_parse_uid retrievebed vcfeva CNV_frequency_from_samples CNV_regions_format_per_sample
 
 all: $(PROG)
 
@@ -46,6 +46,12 @@ force:
 mk: pkg_version.h $(HTSLIB)
 	-mkdir -p bin
 
+CNV_frequency_from_samples:
+	$(CC) $(CFLAGS) $(DFLAGS) $(INCLUDES) -o bin/$@  projects/CNV_database/cnv_frequency_from_samples.c lib/number.c lib/sort_list.c lib/cnv_bed.c  $(HTSLIB)
+
+CNV_regions_format_per_sample:
+	$(CC) $(CFLAGS) $(DFLAGS) $(INCLUDES) -o bin/$@  projects/CNV_database/CNV_regions_format_per_sample.c lib/number.c lib/sort_list.c lib/cnv_bed.c  $(HTSLIB)
+
 allele_freqs:
 	$(CC) $(CFLAGS) $(DFLAGS) $(INCLUDES) -o bin/allele_freqs_count projects/vcf/allele_freqs_count.c  $(HTSLIB)
 
@@ -68,7 +74,11 @@ retrievebed:
 	$(CC) $(CFLAGS) $(DFLAGS) $(INCLUDES) -DGENEPRED_TEST_MAIN -o bin/$@ lib/genepred.c lib/number.c lib/sort_list.c  $(HTSLIB)
 
 vcfeva:
-	$(CC) $(CFLAGS) $(DFLAGS) $(INCLUDES) -o bin/$@ projects/vcf/vcfeva.c $(HTSLIB)	
+	$(CC) $(CFLAGS) $(DFLAGS) $(INCLUDES) -o bin/$@ projects/vcf/vcfeva.c $(HTSLIB)
+
+comp_ref_trans:
+	$(CC) $(CFLAGS) $(DFLAGS) $(INCLUDES) -o bin/$@ projects/gene_regions/check_genepred_transcripts.c lib/ksw.c lib/genepred.c lib/sequence.c lib/number.c $(HTSLIB)
+
 
 clean: testclean
 	-rm -f gmon.out *.o *~ $(PROG) pkg_version.h  version.h
