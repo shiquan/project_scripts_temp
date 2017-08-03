@@ -582,6 +582,26 @@ struct genepred_line *genepred_line_copy(struct genepred_line *line)
     }
     return nl;
 }
+
+void genepred2line(struct genepred_line *line, kstring_t *str)
+{
+    int i;
+    str->l = 0;
+    ksprintf(str, "%s\t%s\t%c\t%d\t%d\t%d\t%d\t%d\t",
+            line->name1, line->chrom, line->strand, line->txstart, line->txend, line->cdsstart, line->cdsend, line->exon_count
+        );
+    for ( i = 0; i < line->exon_count; ++i )
+        ksprintf(str, "%d,", line->exons[BLOCK_START][i]-1);
+
+    kputc('\t', str);
+
+    for ( i = 0; i < line->exon_count; ++i )
+        ksprintf(str, "%d,", line->exons[BLOCK_END][i]);
+
+    kputs(line->name2, str);
+
+}
+
 char *generate_dbref_header()
 {
     kstring_t string = KSTRING_INIT;

@@ -1,4 +1,7 @@
-PROG=  mk allele_freqs seqtrim split_barcode umi_parser dyncut_adaptor sam_parse_uid retrievebed vcfeva CNV_frequency_from_samples CNV_regions_format_per_sample
+PROG= allele_freqs \
+	seqtrim \
+	split_barcode \
+	umi_parser dyncut_adaptor sam_parse_uid retrievebed vcfeva CNV_frequency_from_samples CNV_regions_format_per_sample
 
 all: $(PROG)
 
@@ -46,38 +49,38 @@ force:
 mk: pkg_version.h $(HTSLIB)
 	-mkdir -p bin
 
-CNV_frequency_from_samples:
+CNV_frequency_from_samples: mk
 	$(CC) $(CFLAGS) $(DFLAGS) $(INCLUDES) -o bin/$@  projects/CNV_database/cnv_frequency_from_samples.c lib/number.c lib/sort_list.c lib/cnv_bed.c  $(HTSLIB)
 
-CNV_regions_format_per_sample:
+CNV_regions_format_per_sample: mk
 	$(CC) $(CFLAGS) $(DFLAGS) $(INCLUDES) -o bin/$@  projects/CNV_database/CNV_regions_format_per_sample.c lib/number.c lib/sort_list.c lib/cnv_bed.c  $(HTSLIB)
 
-allele_freqs:
+allele_freqs: mk
 	$(CC) $(CFLAGS) $(DFLAGS) $(INCLUDES) -o bin/allele_freqs_count projects/vcf/allele_freqs_count.c  $(HTSLIB)
 
-seqtrim:
+seqtrim: mk
 	$(CC) $(CFLAGS) $(DFLAGS) $(INCLUDES) -o bin/seqtrim projects/sequence/seqtrim.c lib/sequence.c $(HTSLIB)
 
-split_barcode:
+split_barcode: mk
 	$(CC) $(CFLAGS) $(DFLAGS) $(INCLUDES) -o bin/split_barcode projects/sequence/split_barcode.c lib/number.c lib/fastq.c $(HTSLIB)
 
-umi_parser:
+umi_parser: mk
 	$(CC) $(CFLAGS) $(DFLAGS) $(INCLUDES) -o bin/umi_parser projects/sequence/umi_parser.c lib/number.c $(HTSLIB)	
 
-dyncut_adaptor:
+dyncut_adaptor: mk
 	$(CC) $(CFLAGS) $(DFLAGS) $(INCLUDES) -o bin/dyncut_adaptor projects/sequence/dyncut_adaptor_trim_uid.c lib/number.c lib/fastq.c $(HTSLIB)
 
-sam_parse_uid:
+sam_parse_uid: mk
 	$(CC) $(CFLAGS) $(DFLAGS) $(INCLUDES) -o bin/$@ projects/bam/parse_UID_tag.c lib/number.c lib/sequence.c $(HTSLIB)
 
-retrievebed:
+retrievebed: mk
 	$(CC) $(CFLAGS) $(DFLAGS) $(INCLUDES) -DGENEPRED_TEST_MAIN -o bin/$@ lib/genepred.c lib/number.c lib/sort_list.c  $(HTSLIB)
 
-vcfeva:
+vcfeva: mk
 	$(CC) $(CFLAGS) $(DFLAGS) $(INCLUDES) -o bin/$@ projects/vcf/vcfeva.c $(HTSLIB)
 
-comp_ref_trans:
-	$(CC) $(CFLAGS) $(DFLAGS) $(INCLUDES) -o bin/$@ projects/gene_regions/check_genepred_transcripts.c lib/ksw.c lib/genepred.c lib/sequence.c lib/number.c $(HTSLIB)
+comp_ref_trans: mk
+	$(CC) $(CFLAGS) $(DFLAGS) $(INCLUDES) -o bin/$@ projects/gene_regions/check_genepred_transcripts.c lib/ksw.c lib/genepred.c lib/sequence.c lib/number.c lib/kthread.c $(HTSLIB)
 
 
 clean: testclean
