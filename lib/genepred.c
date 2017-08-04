@@ -597,7 +597,7 @@ void genepred2line(struct genepred_line *line, kstring_t *str)
 
     for ( i = 0; i < line->exon_count; ++i )
         ksprintf(str, "%d,", line->exons[BLOCK_END][i]);
-
+    kputc('\t', str);
     kputs(line->name2, str);
 
 }
