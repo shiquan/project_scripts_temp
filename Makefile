@@ -1,7 +1,14 @@
 PROG= allele_freqs \
 	seqtrim \
 	split_barcode \
-	umi_parser dyncut_adaptor sam_parse_uid retrievebed vcfeva CNV_frequency_from_samples CNV_regions_format_per_sample
+	umi_parser \
+	dyncut_adaptor \
+	sam_parse_uid \
+	retrievebed \
+	vcfeva	\
+	CNV_frequency_from_samples \
+	CNV_regions_format_per_sample \
+	comp_ref_trans
 
 all: $(PROG)
 
