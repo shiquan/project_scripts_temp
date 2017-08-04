@@ -1,7 +1,7 @@
 // Check the genepred data and transcripts sequences is consistant.
 #include "utils.h"
 #include "genepred.h"
-#include "faidx_def.h"
+//#include "faidx_def.h"
 #include "htslib/faidx.h"
 #include "htslib/tbx.h"
 #include "htslib/kstring.h"
