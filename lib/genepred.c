@@ -588,7 +588,7 @@ void genepred2line(struct genepred_line *line, kstring_t *str)
     int i;
     str->l = 0;
     ksprintf(str, "%s\t%s\t%c\t%d\t%d\t%d\t%d\t%d\t",
-            line->name1, line->chrom, line->strand, line->txstart+1, line->txend, line->cdsstart+1, line->cdsend, line->exon_count
+            line->name1, line->chrom, line->strand, line->txstart-1, line->txend, line->cdsstart-1, line->cdsend, line->exon_count
         );
     for ( i = 0; i < line->exon_count; ++i )
         ksprintf(str, "%d,", line->exons[BLOCK_START][i]-1);
