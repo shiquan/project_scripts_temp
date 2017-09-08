@@ -1,1 +1,1 @@
-../../vcfanno/file.c
+../../bcfanno/file.c

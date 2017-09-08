@@ -23,7 +23,11 @@ int usage()
             " -rna      Transcripts sequence database included in FASTA format, indexed by samtools faidx.\n"
             " -ref      Genome reference database in FASTA format, indexed by samtools faidx.\n"
             " -format   Format of gene prediction database, refgene is default. [genepred,refflat,refgene]\n"
-            " -p        Set threads [1].\n"
+            //" -p        Set threads [1].\n"
+	    " -gapo     Penalty score for gap open.\n"
+	    " -gape     Penalty score for gap extension.\n"
+	    " -sa       Penalty score for match.\n"
+	    " -sb       Penalty score for mismatch.\n"	   
             "\nwebsite: https://github.com/shiquan/small_projects\n");
     return 1;
 }
@@ -305,7 +309,10 @@ int process(struct args *args, struct data *data, kstring_t *str)
     int ret;
     genepred2line(line, str);
     kputc('\t', str);
-    if ( n_cigar && score > 0) {
+    if ( n_cigar ) {
+	if ( score < 0 ) 
+	    warnings("Low alignment score for %s, %d.", line->name1, score);
+	
         for ( i = 0; i < n_cigar; ++i ) { 
             int c = cigar[i]&0xf;
             ksprintf(str, "%d%c", cigar[i]>>4, "MIDSH"[c]);
@@ -313,6 +320,7 @@ int process(struct args *args, struct data *data, kstring_t *str)
         ret = 0;
     } else {
         kputs("*", str);
+	warnings("%s not properly checked.", line->name1);
         ret = 1;
     }
     
