@@ -315,7 +315,7 @@ int process(struct args *args, struct data *data, kstring_t *str)
     int score = ksw_global(len, (uint8_t*)trans, tmp.l, (uint8_t*)tmp.s, 5, args->mat, args->gapo, args->gape, 100, &n_cigar, &cigar);
     int ret;
     genepred2line(line, str);
-    kputc('\t', str);
+    kputc('\t', str); kputw(ver, str); kputc('\t', str);
     if ( n_cigar ) {
 	if ( score < 0 ) 
 	    warnings("Low alignment score for %s, %d.", line->name1, score);
