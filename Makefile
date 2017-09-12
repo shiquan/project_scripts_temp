@@ -87,7 +87,7 @@ vcfeva: mk
 	$(CC) $(CFLAGS) $(DFLAGS) $(INCLUDES) -o bin/$@ projects/vcf/vcfeva.c $(HTSLIB)
 
 comp_ref_trans: mk
-	$(CC) $(CFLAGS) $(DFLAGS) $(INCLUDES) -o bin/$@ projects/gene_regions/check_genepred_transcripts.c lib/ksw.c lib/genepred.c lib/sequence.c lib/number.c lib/kthread.c  $(HTSLIB)
+	$(CC) $(CFLAGS) $(DFLAGS) $(INCLUDES) -o bin/$@ projects/gene_regions/check_genepred_transcripts.c lib/ksw.c lib/genepred.c lib/sequence.c lib/number.c lib/kthread.c lib/faidx_def.c $(HTSLIB)
 
 
 clean: testclean

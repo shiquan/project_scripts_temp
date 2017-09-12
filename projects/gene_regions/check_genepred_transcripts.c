@@ -23,7 +23,7 @@ int usage()
             " -rna      Transcripts sequence database included in FASTA format, indexed by samtools faidx.\n"
             " -ref      Genome reference database in FASTA format, indexed by samtools faidx.\n"
             " -format   Format of gene prediction database, refgene is default. [genepred,refflat,refgene]\n"
-            " -p        Set threads [1].\n"
+            // " -p        Set threads [1].\n"
             "\nwebsite: https://github.com/shiquan/small_projects\n");
     return 1;
 }
@@ -165,6 +165,7 @@ int parse_args(int ac, char **av)
     /*     if ( args.threads < 1 ) */
     /*         args.threads = 1; */
     /* } */
+    // Since BGZF is NOT thread safe, here only accept thread == 1.
     // init memory pool for threads
     args.pbuf = (struct buffer*)calloc(args.threads, sizeof(struct buffer));
     for ( i = 0; i < args.threads; ++i ) {
@@ -228,6 +229,11 @@ kstring_t *read_buffer(kstream_t *ks, int chunk_size, int *_n)
 
 int process(struct args *args, struct data *data, kstring_t *str)
 {
+    // extern function from faidx_def.c
+    // retrieve transcript version number from transcript reference database
+    // the format of transcript title in FASTA should be format as >TRANSCRIPT[space]VERSION 
+    extern int trans_retrieve_version(void *_fai, const char *trans);
+    
     static const int sntab[256] = {
         4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4,
         4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4,
@@ -250,11 +256,12 @@ int process(struct args *args, struct data *data, kstring_t *str)
     struct genepred_line *line = genepred_line_create();
     parse_line(str, line);
     int len;
-
+    int ver = trans_retrieve_version((void*)data->rna_fai, line->name1);
     char *trans = faidx_fetch_seq((const faidx_t*)data->rna_fai, line->name1, 0, 10000, &len);
+
     if ( trans == 0 || len == 0 ) {
         genepred2line(line, str);
-        kputs("\t*", str);
+        ksprintf(str, "\t%d\t*", ver);
         return 1;
     }
     
@@ -281,7 +288,7 @@ int process(struct args *args, struct data *data, kstring_t *str)
 
     if ( tmp.l == 0 ) {
         genepred2line(line, str);
-        kputs("\t*", str);
+        ksprintf(str, "\t%d\t*", ver);
         return 1;
     }
     //debug_print("%s\n%s\n%s\n", line->name1, trans, tmp.s);
@@ -304,7 +311,7 @@ int process(struct args *args, struct data *data, kstring_t *str)
     int score = ksw_global(len, (uint8_t*)trans, tmp.l, (uint8_t*)tmp.s, 5, args->mat, args->gapo, args->gape, 100, &n_cigar, &cigar);
     int ret;
     genepred2line(line, str);
-    kputc('\t', str);
+    ksprintf(str, "\t%d\t", ver);
     if ( n_cigar && score > 0) {
         for ( i = 0; i < n_cigar; ++i ) { 
             int c = cigar[i]&0xf;
