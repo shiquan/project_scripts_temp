@@ -1,1 +1,1 @@
-../../vcfanno/hgvs.h
+../../bcfanno/hgvs.h
