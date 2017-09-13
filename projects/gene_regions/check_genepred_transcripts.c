@@ -316,10 +316,7 @@ int process(struct args *args, struct data *data, kstring_t *str)
     int ret;
     genepred2line(line, str);
     kputc('\t', str); kputw(ver, str); kputc('\t', str);
-    if ( n_cigar ) {
-	if ( score < 0 ) 
-	    warnings("Low alignment score for %s, %d.", line->name1, score);
-	
+    if ( n_cigar && score > 0 ) {	
         for ( i = 0; i < n_cigar; ++i ) { 
             int c = cigar[i]&0xf;
             ksprintf(str, "%d%c", cigar[i]>>4, "MIDSH"[c]);
