@@ -12,7 +12,7 @@ PROG= allele_freqs \
 
 all: $(PROG)
 
-HTSDIR = htslib-1.4.1
+HTSDIR = htslib-1.5
 include $(HTSDIR)/htslib.mk
 include $(HTSDIR)/htslib_static.mk
 HTSLIB = $(HTSDIR)/libhts.a
@@ -36,8 +36,8 @@ INCLUDES = -Iinclude/ -I. -I$(HTSDIR)/
 all:$(PROG)
 
 ifneq "$(wildcard .git)" ""
-PACKAGE_VERSION := $(shell git describe --always --dirty)
-DOC_VERSION :=  $(shell git describe --always)+
+PACKAGE_VERSION := $(shell git describe --tags)
+DOC_VERSION :=  $(shell git describe --tags)+
 DOC_DATE := $(shell date +'%Y-%m-%d %R %Z')
 pkg_version.h: $(if $(wildcard pkg_version.h),$(if $(findstring "$(PACKAGE_VERSION)",$(shell cat pkg_version.h)),,force))
 endif
