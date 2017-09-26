@@ -295,6 +295,11 @@ int process(struct args *args, struct data *data, kstring_t *str)
         ksprintf(str, "\t%d\t*", ver);
         return 1;
     }
+    else if (tmp.l == len) {
+        genepred2line(line, str);
+        ksprintf(str, "\t%d\t%dM", ver, len);
+        return 0;
+    }
     //debug_print("%s\n%s\n%s\n", line->name1, trans, tmp.s);
     for ( i = 0; i < tmp.l; ++i )
         tmp.s[i] = (uint8_t)sntab[tmp.s[i]];
