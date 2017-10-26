@@ -14,6 +14,9 @@
 
 KSTREAM_INIT(gzFile, gzread, 16384)
 
+// skip the version number in the transcript name
+static int skip_version_flag = 0;
+
 int usage()
 {
     fprintf(stderr,
@@ -23,6 +26,7 @@ int usage()
             " -rna      Transcripts sequence database included in FASTA format, indexed by samtools faidx.\n"
             " -ref      Genome reference database in FASTA format, indexed by samtools faidx.\n"
             " -format   Format of gene prediction database, refgene is default. [genepred,refflat,refgene]\n"
+            " -skip-ver Skip version number of the transcript name.\n"
             //" -p        Set threads [1].\n"
 	    " -gapo     Penalty score for gap open.\n"
 	    " -gape     Penalty score for gap extension.\n"
@@ -111,6 +115,12 @@ int parse_args(int ac, char **av)
             *var = av[i++];
             continue;
         }
+
+        if ( strcmp(a, "-skip-ver") == 0 ) {
+            skip_version_flag = 1;
+            continue;
+        }
+        
         error("Unknown argument: %s.", a);
         return 1;               
     }
@@ -259,13 +269,21 @@ int process(struct args *args, struct data *data, kstring_t *str)
    
     struct genepred_line *line = genepred_line_create();
     parse_line(str, line);
+    if ( skip_version_flag ) {
+        char *s = line->name1;
+        for ( ;*s != '.' && *s; ++s); 
+        if (*s == '.')
+            *s = '\0';
+    }
     int len;
     int ver = trans_retrieve_version((void*)data->rna_fai, line->name1);
-    char *trans = faidx_fetch_seq((const faidx_t*)data->rna_fai, line->name1, 0, 10000, &len);
+    char *trans = faidx_fetch_seq((const faidx_t*)data->rna_fai, line->name1, 0, 1000000000, &len);
 
     if ( trans == 0 || len == 0 ) {
-        genepred2line(line, str);
-        ksprintf(str, "\t%d\t*", ver);
+        //str->l = 0;
+        //genepred2line(line, str);
+        //ksprintf(str, "\t%d\t*", ver);
+        warnings("%s not found in the Transcripts FASTA.", line->name1);
         return 1;
     }
     
@@ -321,7 +339,8 @@ int process(struct args *args, struct data *data, kstring_t *str)
     int ret;
     genepred2line(line, str);
     kputc('\t', str); kputw(ver, str); kputc('\t', str);
-    if ( n_cigar && score > 0 ) {	
+    //if ( n_cigar && score > 0) {
+    if ( n_cigar ) {	
         for ( i = 0; i < n_cigar; ++i ) { 
             int c = cigar[i]&0xf;
             ksprintf(str, "%d%c", cigar[i]>>4, "MIDSH"[c]);
@@ -329,7 +348,7 @@ int process(struct args *args, struct data *data, kstring_t *str)
         ret = 0;
     } else {
         kputs("*", str);
-	warnings("%s not properly checked.", line->name1);
+	warnings("%s not properly checked. score : %d", line->name1, score);
         ret = 1;
     }
     
@@ -342,7 +361,8 @@ int process(struct args *args, struct data *data, kstring_t *str)
 static void worker_for(void *_data, long i, int tid)
 {
     struct data *data = (struct data*)_data;
-    process(data->args, data, &data->buffers[i]);
+    if ( process(data->args, data, &data->buffers[i]) )
+        data->buffers[i].l = 0;
 }
 
 static void *worker_pipeline(void *shared, int step, void *_data)
@@ -367,8 +387,10 @@ static void *worker_pipeline(void *shared, int step, void *_data)
     } else if ( step == 2 ) {
         struct data *data = (struct data*)_data;
         for ( i = 0; i < data->n_buffers; ++i ) {
-            puts(data->buffers[i].s);
-            free(data->buffers[i].s);
+            if ( data->buffers[i].l ) 
+                puts(data->buffers[i].s);
+            if ( data->buffers[i].m )
+                free(data->buffers[i].s);
         }
         data->n_buffers = 0;
         fai_destroy(data->rna_fai);
