@@ -64,7 +64,7 @@ CNV_regions_format_per_sample: mk
 	$(CC) $(CFLAGS) $(DFLAGS) $(INCLUDES) -o bin/$@  projects/CNV_database/CNV_regions_format_per_sample.c lib/number.c lib/sort_list.c lib/cnv_bed.c  $(HTSLIB)
 
 rs_finder: mk
-	$(CC) $(CFLAGS) $(DFLAGS) $(INCLUDES) -o bin/$@  projects/rs_finder.c lib/number.c $(HTSLIB)
+	$(CC) $(CFLAGS) $(DFLAGS) $(INCLUDES) -o bin/$@  projects/rs/rs_finder.c lib/number.c $(HTSLIB)
 
 allele_freqs: mk
 	$(CC) $(CFLAGS) $(DFLAGS) $(INCLUDES) -o bin/allele_freqs_count projects/vcf/allele_freqs_count.c  $(HTSLIB)
