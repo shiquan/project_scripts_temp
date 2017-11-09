@@ -96,7 +96,7 @@ int bwt_builder()
     args.offsets = (int*)malloc((args.size+1)*sizeof(int));
     for ( i = 0; i < args.size+1; i++ )  
         args.offsets[i] = i;
-    mergesort(args.offsets, args.size, sizeof(int), bwt_cmp_buff);
+    mergesort(args.offsets, args.size, sizeof(int), bwt_cmp_buff);    
     args.bwt = (char*)malloc((args.size+1) *sizeof(char));
     for ( i = 0; i < args.size + 1; i++)
         args.bwt[i] = args.offsets[i] == 0 ? '\0' : args.buffer[args.offsets[i]-1];
@@ -156,7 +156,7 @@ int bwt_finder_core(char *bwt, int size, char *str)
 
         printf("start : %d, end: %d, offsets : %d, startOcc : %d, endOcc : %d\n", args.start, args.end, offsets[c], startOcc, endOcc);                
 
-        if ( startOcc == endOcc)
+        if ( startOcc >= endOcc)
             break;
         
         i = i - 1;
@@ -167,7 +167,7 @@ int bwt_finder_core(char *bwt, int size, char *str)
     
     printf("mapped region : start=%u, end=%u\n", args.start, args.end);
     int j = 0, k;
-    for ( i = args.start; i <= args.end; i++, j++) {
+    for ( i = args.start; i < args.end; i++, j++) {
         printf ("[%d] pos : %d\n", j, args.offsets[i]);        
         int b = args.offsets[i] -2 ;        
         int e = args.offsets[i] + l + 2;

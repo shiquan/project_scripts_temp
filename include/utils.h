@@ -88,6 +88,8 @@
 	fprintf(stderr, "[%s] " ANSI_COLOR_GREEN line ANSI_COLOR_RESET"\n", _time_buff, ##__VA_ARGS__); \
     } while(0)
 
-#define BE_SMART_STRING "Please DO NOT post this error message on forums or emails. And please read the online manual"
+#define BE_SMART_STRING "Please read manual and do NOT post this error message on forums or emails."
+
+#define KSTRING_INIT { 0, 0, 0 }
 
 #endif
