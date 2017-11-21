@@ -179,7 +179,7 @@ int parse_args(int argc, char **argv)
     
     args.idx = tbx_index_load(args.data_fname);
     if ( args.idx == NULL )
-        return 1;
+        error("Failed to load index of %s.", args.data_fname);
     
     args.fp_data = hts_open(args.data_fname, "r");
     if ( args.fp_data == NULL )
