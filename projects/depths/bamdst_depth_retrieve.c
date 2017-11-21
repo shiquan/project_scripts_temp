@@ -88,41 +88,107 @@ int comp(const void *a, const void *b)
 }
 static int *str2intArray(const char *_s, int *n_arr)
 {
-    char *s = (char*)_s;
+    char *ss = (char*)_s;
+    char *se = (char*)_s;
     int i;
     int l;
-    int n = 1;
+    int n = 0;
+    int m = 0;
     int *d;
-    if ( s == NULL ) {
+
+    if ( ss == NULL ) {
         *n_arr = 1;
         d = (int*)malloc(sizeof(int));
         d[0] = 0;
         return d;
     }
-        
-    l = strlen(s);
-    for ( i = 0; i < l; ++i ) {
-        if ( s[i] == ',' ) n++;            
-    }
+    
+    l = strlen(ss);
+    int itr = -1;
+    int start = -1;
+    for ( i = 0; i < l; ++i) {        
+        if ( ss[i] == ',') {
+            // emit first comma
+            if ( itr == -1)
+                error("Unrecognize format %s", _s);
+            
+            int num = str2int_l(ss+itr, i - itr);
+            
+            if ( num < 0 )
+                error("Unrecognize format %s", _s);
 
-    d = (int*)calloc(n, sizeof(int));
+            if ( start >= 0 ) {
+                if ( num < start )
+                    error("Unsorted range, %d-%d.", start, num);
+                int range = num - start + 1;
+                if ( m < n + range) {
+                    m = n+ range;
+                    d = (int*)realloc(d, m*sizeof(int));
+                }
+                int j;
+                for ( j = start; j <= num; ++j) {                    
+                    d[n] = j;
+                    n++;
+                }
+                start = -1;
+            }
+            else {
+                if (m == n ) {
+                    m+=2;
+                    d = (int*)realloc(d, m*sizeof(int));
+                }
+                d[n++] = num;
+            }
+            itr = i+1;
+        }
+        else if ( ss[i] == '-' ) {
+            if ( start >= 0 )
+                error("Unrecognize format %s", _s);
 
-    int last = 0;
-    *n_arr = n;
-    n = 0;
-    for ( i = 0; i < l; ++i ) {
-        if ( s[i] == ',' ) {
-            d[n] = str2int_l(s+last, i-last);
-            last = i+1;
-            n++;
+            start = str2int_l(ss+itr, i-itr);
+            if ( start < 0 )
+                error("Unrecognize format %s", _s);
+
+            itr = i + 1;
         }
         else if ( i == l -1 ) {
-            d[n] = str2int_l(s+last, i-last+1);
-            n++;
+            int num = str2int_l(ss+itr, i - itr+1);
+            
+            if ( num < 0 )
+                error("Unrecognize format %s", _s);
+
+            if ( start >= 0 ) {
+                if ( num < start )
+                    error("Unsorted range, %d-%d.", start, num);
+                int range = num - start + 1;
+                if ( m < n + range) {
+                    m = n+ range;
+                    d = (int*)realloc(d, m*sizeof(int));
+                }
+                int j;
+                for ( j = start; j <= num; ++j) {                    
+                    d[n] = j;
+                    n++;
+                }
+                start = -1;
+            }
+            else {
+                if (m == n ) {
+                    m+=2;
+                    d = (int*)realloc(d, m*sizeof(int));
+                }
+                d[n++] = num;
+            }         
+        }
+        else {
+            if ( itr == -1 )
+                itr = i;
         }
     }
 
     qsort((void*)d, n, sizeof(int), comp);
+
+    *n_arr = n;
     
     if ( d[0] != 0 ) {
         d = realloc(d, (n+1)*sizeof(int));
