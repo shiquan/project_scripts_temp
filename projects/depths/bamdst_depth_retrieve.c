@@ -140,7 +140,7 @@ int parse_args(int argc, char **argv)
 
     int i;
     const char *cutoff_string = 0;
-    const char *col = 0;
+    const char *col_str = 0;
     for ( i = 1; i < argc; ) {
         const char *a = argv[i++];
         const char **var = 0;
@@ -154,7 +154,7 @@ int parse_args(int argc, char **argv)
         else if ( strcmp(a, "-cutoff") == 0 )
             var = &cutoff_string;
         else if ( strcmp(a, "-col") == 0 )
-            var = &col;
+            var = &col_str;
 
         if ( var != 0 ) {
             if ( argc == i )
@@ -199,6 +199,8 @@ int parse_args(int argc, char **argv)
     if ( args.fp_summary == NULL )
         error("%s : %s.", args.summary_fname, strerror(errno));
 
+    if ( col_str )
+        args.col = str2int(col_str);
 
     args.depths = str2intArray(cutoff_string, &args.n_depth);
     args.depths_cutoff = (uint64_t*)calloc(args.n_depth, sizeof(uint64_t));
@@ -223,17 +225,20 @@ static int parse_depthData(char *str, int l)
 
     for ( i = 0; i < l; ++i) {
         if ( col == args.col ) {
-            if ( str[i] == '\t' || str[i] == '\n' || str[i] == '\0' || i == l -1 ) {
-                 return str2int_l(str+start, i-start);
+            if ( str[i] == '\t' || i == l -1 ) {
+                return str2int_l(str+start, i-start);
             }
         }
         else {
-            if ( str[i] == '\t' || str[i] == '\n' || str[i] == '\0' || i == l -1 ) {
+            if ( str[i] == '\t' ) {
                 col++;
                 start = i+1;
             }
         }
-    }    
+    }
+    if ( col < args.col)
+        error("Unsufficient column in line %s.", str);
+    
     return 0;
 }
 void clean_bed(struct bed *bed)
