@@ -398,7 +398,7 @@ int process(struct args *args, struct data *data, kstring_t *str)
         return 0;
     }
     else if ( abs(tmp.l - len) > MAX_GAP_LENGTH ) {
-        warnings("%s properly truncated. %d vs %d.", line->name1, len, tmp.l);
+        warnings("%s properly truncated in chromosome %s. %d vs %d.", line->name1, line->chrom, len, tmp.l);
         return 1;
     }
 

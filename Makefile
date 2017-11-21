@@ -9,7 +9,8 @@ PROG= allele_freqs \
 	CNV_frequency_from_samples \
 	CNV_regions_format_per_sample \
 	comp_ref_trans \
-	rs_finder
+	rs_finder \
+	bamdst_depth_retrieve
 
 all: $(PROG)
 
@@ -93,6 +94,8 @@ vcfeva: mk
 comp_ref_trans: mk
 	$(CC) $(CFLAGS) $(DFLAGS) $(INCLUDES) -o bin/$@ projects/gene_regions/check_genepred_transcripts.c lib/ksw.c lib/genepred.c lib/sequence.c lib/number.c lib/kthread.c lib/faidx_def.c $(HTSLIB)
 
+bamdst_depth_retrieve: mk
+	$(CC) $(DEBUG_CFLAGS) $(DFLAGS) $(INCLUDES) -o bin/$@ projects/depths/bamdst_depth_retrieve.c lib/number.c $(HTSLIB)
 
 clean: testclean
 	-rm -f gmon.out *.o *~ $(PROG) pkg_version.h  version.h
