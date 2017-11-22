@@ -459,11 +459,12 @@ void depths_retrieve()
         
         while ( tbx_itr_next(args.fp_data, args.idx, itr, &str) >= 0 ) {
             depth = parse_depthData(str.s, str.l);
+            //debug_print("%d", depth);
             args.total_base += depth;
             total_bases_reg += depth;
             uncover --;            
             for ( i = 0; i < args.n_depth; ++i) {
-                if ( depth >= args.depths[i] ) {
+                if ( depth > args.depths[i] ) {
                     args.depths_cutoff[i]++;
                     args.depths_cutoff_per_reg[i]++;
                 }
