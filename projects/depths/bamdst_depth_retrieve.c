@@ -94,7 +94,7 @@ static int *str2intArray(const char *_s, int *n_arr)
     int l;
     int n = 0;
     int m = 0;
-    int *d;
+    int *d = NULL;
 
     if ( ss == NULL ) {
         *n_arr = 1;
