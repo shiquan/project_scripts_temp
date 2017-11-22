@@ -142,12 +142,17 @@ static int *str2intArray(const char *_s, int *n_arr)
             itr = i+1;
         }
         else if ( ss[i] == '-' ) {
-            if ( start == -1 )
-                error("Cutoff must greater or equal than 0, %s", _s);
+            if ( start > -1 )
+                error("Unrecognize format %s", _s);
 
+            if ( i == itr)
+                error("Cutoff must greater or equal than 0, %s", _s);
+                 
             start = str2int_l(ss+itr, i-itr);
             if ( start < 0 )
                 error("Unrecognize format %s", _s);
+
+
 
             itr = i + 1;
         }
