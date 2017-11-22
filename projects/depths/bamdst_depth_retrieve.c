@@ -397,7 +397,7 @@ void memory_release()
     if ( args.n_depth )
         free ( args.depths );
     hts_close( args.fp_data );
-    
+    tbx_destroy( args.idx );
     free ( args.depths_cutoff );
     free ( args.depths_cutoff_per_reg );
     // free ( args.cov_bases );
