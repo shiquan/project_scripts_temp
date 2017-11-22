@@ -338,6 +338,10 @@ int read_bed()
         
         char c = fgetc(args.fp_input);
 
+        // in case last character
+        if ( feof(args.fp_input) )
+            return 1;
+        
         // emit comments
         if ( c == '#' ) {
             for ( ; c != '\n' && !feof(args.fp_input); c = fgetc(args.fp_input) );
@@ -376,8 +380,7 @@ int read_bed()
             for ( ; c != '\n' && !feof(args.fp_input); )
                 c = fgetc(args.fp_input);
             // emit last \n
-            if ( c == '\n' )
-                c = fgetc(args.fp_input);
+
             str.l = 0;                
             break;
         }
