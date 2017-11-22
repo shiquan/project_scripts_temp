@@ -467,9 +467,9 @@ void depths_retrieve()
         reg.l = 0;
         tbx_itr_destroy(itr);            
     }
-
-    free(reg.s);
-    
+    if ( str.m)
+        free(str.s);
+    free(reg.s);    
 }
 
 void summary_output()
