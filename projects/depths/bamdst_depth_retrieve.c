@@ -123,7 +123,7 @@ static int *str2intArray(const char *_s, int *n_arr)
                 int range = num - start + 1;
                 if ( m < n + range) {
                     m = n+ range;
-                    d = (int*)realloc(d, m*sizeof(int));
+                    d = d == NULL ? (int*)malloc(m*sizeof(int)) : (int*)realloc(d, m*sizeof(int));
                 }
                 int j;
                 for ( j = start; j <= num; ++j) {                    
@@ -142,8 +142,8 @@ static int *str2intArray(const char *_s, int *n_arr)
             itr = i+1;
         }
         else if ( ss[i] == '-' ) {
-            if ( start >= 0 )
-                error("Unrecognize format %s", _s);
+            if ( start == -1 )
+                error("Cutoff must greater or equal than 0, %s", _s);
 
             start = str2int_l(ss+itr, i-itr);
             if ( start < 0 )
@@ -163,7 +163,7 @@ static int *str2intArray(const char *_s, int *n_arr)
                 int range = num - start + 1;
                 if ( m < n + range) {
                     m = n+ range;
-                    d = (int*)realloc(d, m*sizeof(int));
+                    d = d== NULL ? (int*)malloc(m*sizeof(int) : (int*)realloc(d, m*sizeof(int));
                 }
                 int j;
                 for ( j = start; j <= num; ++j) {                    
@@ -175,7 +175,7 @@ static int *str2intArray(const char *_s, int *n_arr)
             else {
                 if (m == n ) {
                     m+=2;
-                    d = (int*)realloc(d, m*sizeof(int));
+                    d = d == NULL ? (int*)malloc(m*sizeof(int)) : (int*)realloc(d, m*sizeof(int));
                 }
                 d[n++] = num;
             }         
