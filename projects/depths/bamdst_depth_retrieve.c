@@ -145,8 +145,8 @@ static int *str2intArray(const char *_s, int *n_arr)
             if ( start > -1 )
                 error("Unrecognize format %s", _s);
 
-            if ( i == itr)
-                error("Cutoff must greater or equal than 0, %s", _s);
+            if ( i == itr || (i == 0 && itr == -1) )
+                error("Cutoff must greater or equal than 0 : %s", _s);
                  
             start = str2int_l(ss+itr, i-itr);
             if ( start < 0 )
@@ -344,18 +344,24 @@ int read_bed()
             continue;
         }
         
-#define BRANCH(_key, _func, _len) do {                                       \
-            if ( c == '\t' || c == '\n' || feof(args.fp_input) ) {   \
-                if ( _len == 0 ) break;\
-                _key = _func(str.s, _len);                                   \
-                str.l = 0;\
-                col++;\
-            }\
-            else {\
-                kputc(c, &str);\
-            }\
-        } while(0)\
-            
+#define BRANCH(_key, _func, _len) do {          \
+            if ( c == '\t') {                   \
+                if ( _len == 0 ) goto line_end;\
+                _key = _func(str.s, _len);                              \
+                str.l = 0;                                              \
+                col++;                                                  \
+            }                                                           \
+            else if ( c == '\n' || feof(args.fp_input) ) {              \
+                if ( _len == 0 ) goto line_end;                  \
+                _key = _func(str.s, _len);                              \
+                str.l = 0;                                              \
+                goto line_end;                                          \
+            }                                                           \
+            else {                                                      \
+                kputc(c, &str);                                         \
+            }                                                           \
+        } while(0)                                                      \
+                  
         if ( col == 0 ) {
             BRANCH(bed->chrom, strndup, str.l);
         }
@@ -365,13 +371,17 @@ int read_bed()
         else if ( col == 2 ) {
             BRANCH(bed->end, str2int_l, str.l);
         }
-        else { 
+        else {
+          line_end:
             for ( ; c != '\n' && !feof(args.fp_input); )
+                c = fgetc(args.fp_input);
+            // emit last \n
+            if ( c == '\n' )
                 c = fgetc(args.fp_input);
             str.l = 0;                
             break;
         }
-
+        
 #undef BRANCH
     }
     // if truncated return -1
