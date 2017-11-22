@@ -7,11 +7,11 @@ int usage()
 {
     fprintf(stderr,
             "bamdst_depth_retrieve [options] depth.tsv.gz\n"
-            " -cutoff depth1,depth2     Depth cutoff values to stat coverage, seperated with \",\".\n"
-            " -out output.tsv           Output average,median,[coverage].\n"
+            " -cutoff depth1,depth2     Depth cutoff values to stat coverage, format like \"1,2-5,10\", defalut is 0.\n"
+            " -out output.tsv           Output average,[coverages], output file generated only if set it.\n"
             " -sum summary.txt          Summary file, export all bases, coverages.\n"
             //" -select <raw|rmdup|cov>   Select depth column in depth.tsv.gz.\n"
-            " -col <INT>                Select column to calculate depth.\n"
+            " -col <INT>                Select column to calculate depth, default is column 3.\n"
             " -reg target.bed           Target region in BED format.\n"
         );
     return 1;
@@ -163,7 +163,7 @@ static int *str2intArray(const char *_s, int *n_arr)
                 int range = num - start + 1;
                 if ( m < n + range) {
                     m = n+ range;
-                    d = d== NULL ? (int*)malloc(m*sizeof(int) : (int*)realloc(d, m*sizeof(int));
+                    d = d== NULL ? (int*)malloc(m*sizeof(int)) : (int*)realloc(d, m*sizeof(int));
                 }
                 int j;
                 for ( j = start; j <= num; ++j) {                    
