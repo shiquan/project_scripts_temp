@@ -37,12 +37,8 @@ INCLUDES = -Iinclude/ -I. -I$(HTSDIR)/
 
 all:$(PROG)
 
-ifneq "$(wildcard .git)" ""
 PACKAGE_VERSION := $(shell git describe --tags)
-DOC_VERSION :=  $(shell git describe --tags)+
-DOC_DATE := $(shell date +'%Y-%m-%d %R %Z')
-pkg_version.h: $(if $(wildcard pkg_version.h),$(if $(findstring "$(PACKAGE_VERSION)",$(shell cat pkg_version.h)),,force))
-endif
+
 pkg_version.h:
 	echo '#define PROJECTS_VERSION "$(PACKAGE_VERSION)"' > $@
 
