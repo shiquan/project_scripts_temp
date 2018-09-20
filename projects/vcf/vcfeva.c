@@ -1,6 +1,11 @@
 // gcc -I. -lhts -o vcfeva vcfeva.c
-//
+// 
 //This program is used to evalue the differnece between the two samples, which merged in a VCF file.
+
+// Reference
+// https://genomebiology.biomedcentral.com/articles/10.1186/gb-2009-10-3-r32
+
+
 #include "utils.h"
 #include "htslib/hts.h"
 #include "htslib/vcf.h"
