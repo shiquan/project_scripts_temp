@@ -113,7 +113,7 @@ double SNPHWE2(int32_t obs_hets, int32_t obs_hom1, int32_t obs_hom2, uint32_t mi
   // - Detection and efficient handling of floating point overflow and
   //   underflow.  E.g. instead of summing a tail all the way down, the loop
   //   stops once the latest increment underflows the partial sum's 53-bit
-  //   precision; this results in a large speedup when max heterozygote count
+  //   Precision; this results in a large speedup when max heterozygote count
   //   >1k.
   // - No malloc() call.  It's only necessary to keep track of a few partial
   //   sums.
@@ -470,6 +470,7 @@ int generate_freq(bcf1_t *line)
         int32_t *b = args.tmp_arr + i*ngt;
         int j;
         type = 0;
+        int last_allele = -1;
         for ( j = 0; j < 2; ++j ) {
             if ( (bcf_gt_is_missing(b[j]) || b[j] == bcf_int32_vector_end) ) {
                 if ( args.force_skip_uncover == 0 ) 
@@ -482,10 +483,15 @@ int generate_freq(bcf1_t *line)
             }
             int a = bcf_gt_allele(b[j]);
             args.counts[a-1] ++;
+            all_counts++;
+            // do not consider multiple alleles
+            type++;
+
+            // in case output sample names twice in homozygote
+            if ( last_allele == -1 ) last_allele = a;
+            else if ( last_allele == a ) continue;
             kputs(args.hdr->samples[i], &allele_samples[a]);
             kputc('|', &allele_samples[a]);
-            all_counts++;
-            type++;
         }
         if ( j == 1 )
             error("Assume all position should be diploid. %s,%s,%d,%d",

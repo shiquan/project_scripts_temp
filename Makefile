@@ -8,7 +8,9 @@ PROG= allele_freqs \
 	vcfeva	\
 	CNV_frequency_from_samples \
 	CNV_regions_format_per_sample \
-	comp_ref_trans
+	comp_ref_trans \
+	rs_finder \
+	bamdst_depth_retrieve
 
 all: $(PROG)
 
@@ -35,12 +37,8 @@ INCLUDES = -Iinclude/ -I. -I$(HTSDIR)/
 
 all:$(PROG)
 
-ifneq "$(wildcard .git)" ""
 PACKAGE_VERSION := $(shell git describe --tags)
-DOC_VERSION :=  $(shell git describe --tags)+
-DOC_DATE := $(shell date +'%Y-%m-%d %R %Z')
-pkg_version.h: $(if $(wildcard pkg_version.h),$(if $(findstring "$(PACKAGE_VERSION)",$(shell cat pkg_version.h)),,force))
-endif
+
 pkg_version.h:
 	echo '#define PROJECTS_VERSION "$(PACKAGE_VERSION)"' > $@
 
@@ -62,20 +60,23 @@ CNV_frequency_from_samples: mk
 CNV_regions_format_per_sample: mk
 	$(CC) $(CFLAGS) $(DFLAGS) $(INCLUDES) -o bin/$@  projects/CNV_database/CNV_regions_format_per_sample.c lib/number.c lib/sort_list.c lib/cnv_bed.c  $(HTSLIB)
 
+rs_finder: mk
+	$(CC) $(CFLAGS) $(DFLAGS) $(INCLUDES) -o bin/$@  projects/rs/rs_finder.c lib/number.c $(HTSLIB)
+
 allele_freqs: mk
 	$(CC) $(CFLAGS) $(DFLAGS) $(INCLUDES) -o bin/allele_freqs_count projects/vcf/allele_freqs_count.c  $(HTSLIB)
 
 seqtrim: mk
-	$(CC) $(CFLAGS) $(DFLAGS) $(INCLUDES) -o bin/seqtrim projects/sequence/seqtrim.c lib/sequence.c $(HTSLIB)
+	$(CC) $(CFLAGS) $(DFLAGS) $(INCLUDES) -o bin/seqtrim projects/sequence/seqtrim/seqtrim.c lib/sequence.c $(HTSLIB)
 
 split_barcode: mk
-	$(CC) $(CFLAGS) $(DFLAGS) $(INCLUDES) -o bin/split_barcode projects/sequence/split_barcode.c lib/number.c lib/fastq.c $(HTSLIB)
+	$(CC) $(CFLAGS) $(DFLAGS) $(INCLUDES) -o bin/split_barcode projects/sequence/split_barcode/split_barcode.c lib/number.c lib/fastq.c $(HTSLIB)
 
 umi_parser: mk
-	$(CC) $(CFLAGS) $(DFLAGS) $(INCLUDES) -o bin/umi_parser projects/sequence/umi_parser.c lib/number.c $(HTSLIB)	
+	$(CC) $(CFLAGS) $(DFLAGS) $(INCLUDES) -o bin/umi_parser projects/sequence/umi_parser/umi_parser.c lib/number.c $(HTSLIB)	
 
 dyncut_adaptor: mk
-	$(CC) $(CFLAGS) $(DFLAGS) $(INCLUDES) -o bin/dyncut_adaptor projects/sequence/dyncut_adaptor_trim_uid.c lib/number.c lib/fastq.c $(HTSLIB)
+	$(CC) $(CFLAGS) $(DFLAGS) $(INCLUDES) -o bin/dyncut_adaptor projects/sequence/dyncut_adaptor/dyncut_adaptor_trim_uid.c lib/number.c lib/fastq.c $(HTSLIB)
 
 sam_parse_uid: mk
 	$(CC) $(CFLAGS) $(DFLAGS) $(INCLUDES) -o bin/$@ projects/bam/parse_UID_tag.c lib/number.c lib/sequence.c $(HTSLIB)
@@ -89,6 +90,8 @@ vcfeva: mk
 comp_ref_trans: mk
 	$(CC) $(CFLAGS) $(DFLAGS) $(INCLUDES) -o bin/$@ projects/gene_regions/check_genepred_transcripts.c lib/ksw.c lib/genepred.c lib/sequence.c lib/number.c lib/kthread.c lib/faidx_def.c $(HTSLIB)
 
+bamdst_depth_retrieve: mk
+	$(CC) $(DEBUG_CFLAGS) $(DFLAGS) $(INCLUDES) -o bin/$@ projects/depths/bamdst_depth_retrieve.c lib/number.c $(HTSLIB)
 
 clean: testclean
 	-rm -f gmon.out *.o *~ $(PROG) pkg_version.h  version.h
